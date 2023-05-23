@@ -1,6 +1,6 @@
 use std::{str::FromStr, num::ParseFloatError};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, PartialOrd)]
 struct Point {
     x: f64,
     y: f64
@@ -23,6 +23,7 @@ struct Line {
     q: Point
 }
 
+#[derive(Debug)]
 enum ParseLineError {
     ParseFloat(ParseFloatError),
     NotFourElements
@@ -52,4 +53,35 @@ impl FromStr for Line {
 
 fn main() {
     println!("Hello, world!");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_line() {
+        let s = "0 1 2 3";
+        let line = Line::from_str(s);
+        assert!(line.is_ok());
+        let line = line.unwrap();
+        assert_eq!(line.p, Point { x: 0.0, y: 1.0 });
+        assert_eq!(line.q, Point { x: 2.0, y: 3.0 });
+    }
+
+    #[test]
+    fn test_point_order() {
+        let p = Point { x: 0.0, y: 1.0 };
+        let q = Point { x: 2.0, y: 3.0 };
+
+        assert!(p < q);
+        assert!(!(q < p));
+        assert!(p == p);
+        assert!(q == q);
+
+        let q2 = Point { x: 0.0, y: 0.5 };
+        assert!(q2 < p);
+        assert!(p > q2);
+    }
+
 }
