@@ -1,9 +1,9 @@
-use std::{str::FromStr, num::ParseFloatError};
+use std::{num::ParseFloatError, str::FromStr};
 
 #[derive(Debug, PartialEq, PartialOrd)]
 struct Point {
     x: f64,
-    y: f64
+    y: f64,
 }
 
 impl Point {
@@ -20,13 +20,13 @@ impl Point {
 #[derive(Debug)]
 struct Line {
     p: Point,
-    q: Point
+    q: Point,
 }
 
 #[derive(Debug)]
 enum ParseLineError {
     ParseFloat(ParseFloatError),
-    NotFourElements
+    NotFourElements,
 }
 
 impl FromStr for Line {
@@ -36,16 +36,15 @@ impl FromStr for Line {
         let splits: Vec<_> = s.split(" ").collect();
 
         if splits.len() != 4 {
-            return Err(ParseLineError::NotFourElements)
+            return Err(ParseLineError::NotFourElements);
         }
 
-        let p = Point::from_str(&splits[0], &splits[1]).map_err(|e| ParseLineError::ParseFloat(e))?;
-        let q = Point::from_str(&splits[2], &splits[3]).map_err(|e| ParseLineError::ParseFloat(e))?;
+        let p =
+            Point::from_str(&splits[0], &splits[1]).map_err(|e| ParseLineError::ParseFloat(e))?;
+        let q =
+            Point::from_str(&splits[2], &splits[3]).map_err(|e| ParseLineError::ParseFloat(e))?;
 
-        let line = Line {
-            p,
-            q,
-        };
+        let line = Line { p, q };
 
         return Ok(line);
     }
@@ -83,5 +82,4 @@ mod tests {
         assert!(q2 < p);
         assert!(p > q2);
     }
-
 }
