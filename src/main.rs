@@ -1,4 +1,6 @@
+use std::cmp::{max, min};
 use std::collections::BTreeMap;
+use std::{env, fs};
 use std::{num::ParseFloatError, str::FromStr};
 
 #[derive(Debug, PartialEq, PartialOrd)]
@@ -100,25 +102,79 @@ fn initialize(lines: &Vec<Line>) -> BTreeMap<&Point, Event> {
     let mut queue = BTreeMap::new();
 
     for line in lines {
-        // TODO: select smaller from p and q
+        let smaller = min(&line.p, &line.q);
+        let larger = max(&line.p, &line.q);
+
         let start = Event::Begin {
-            point: &line.p,
+            point: smaller,
             line: &line,
         };
-        queue.insert(&line.p, start);
+        queue.insert(smaller, start);
 
         let end = Event::End {
-            point: &line.q,
+            point: larger,
             line: &line,
         };
-        queue.insert(&line.q, end);
+        queue.insert(larger, end);
     }
 
     return queue;
 }
 
+fn sweep_line_intersections(queue: &mut BTreeMap<&Point, Event>) -> i64 {
+    let mut segments = Vec::new();
+    let mut intersections = 0;
+
+    while let Some((_, event)) = queue.pop_first() {
+        match event {
+            Event::Begin { point: _, line } => {
+                segments.push(line);
+            }
+            Event::End { point: _, line } => {
+                let index = segments.iter().position(|l| l == &line).expect(
+                    format!(
+                        "could not find line to remove in segments, {:?} not in {:?}",
+                        line, segments,
+                    )
+                    .as_str(),
+                );
+                segments.remove(index);
+            }
+            Event::Intersection {
+                point: _,
+                line: _,
+                other_line: _,
+            } => {
+                intersections += 1;
+            }
+        }
+    }
+
+    intersections
+}
+
+fn read_file(file: &str) -> Vec<Line> {
+    let contents = fs::read_to_string(file).expect("Should have been able to read the file");
+
+    contents
+        .lines()
+        .map(|l| l.parse().expect("Failed to parse a line"))
+        .collect()
+}
+
 fn main() {
-    println!("Hello, world!");
+    let params = env::args().collect::<Vec<_>>();
+
+    for param in params.iter().skip(1) {
+        let lines = read_file(param);
+
+        let mut queue = initialize(&lines);
+        println!("{:#?}", queue);
+        let intersections = sweep_line_intersections(&mut queue);
+        println!("intersects: {}", intersections);
+
+        println!("{:#?}", queue);
+    }
 }
 
 #[cfg(test)]
