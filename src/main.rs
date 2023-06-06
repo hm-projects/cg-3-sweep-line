@@ -1,9 +1,22 @@
+use std::collections::BTreeMap;
 use std::{num::ParseFloatError, str::FromStr};
 
 #[derive(Debug, PartialEq, PartialOrd)]
 struct Point {
     x: f64,
     y: f64,
+}
+
+impl Eq for Point {}
+
+impl Ord for Point {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        let x = f64::total_cmp(&self.x, &other.x);
+        match x {
+            std::cmp::Ordering::Equal => f64::total_cmp(&self.y, &other.y),
+            _ => x,
+        }
+    }
 }
 
 impl Point {
@@ -17,7 +30,7 @@ impl Point {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 struct Line {
     p: Point,
     q: Point,
@@ -48,6 +61,60 @@ impl FromStr for Line {
 
         return Ok(line);
     }
+}
+
+#[derive(Debug, PartialEq)]
+enum Event<'a> {
+    Begin {
+        point: &'a Point,
+        line: &'a Line,
+    },
+    End {
+        point: &'a Point,
+        line: &'a Line,
+    },
+    Intersection {
+        point: &'a Point,
+        line: &'a Line,
+        other_line: &'a Line,
+    },
+}
+
+impl Event<'_> {
+    fn point(&self) -> &Point {
+        match self {
+            Event::Begin { point, .. } => point,
+            Event::End { point, .. } => point,
+            Event::Intersection { point, .. } => point,
+        }
+    }
+}
+
+impl PartialOrd for Event<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        return self.point().partial_cmp(other.point());
+    }
+}
+
+fn initialize(lines: &Vec<Line>) -> BTreeMap<&Point, Event> {
+    let mut queue = BTreeMap::new();
+
+    for line in lines {
+        // TODO: select smaller from p and q
+        let start = Event::Begin {
+            point: &line.p,
+            line: &line,
+        };
+        queue.insert(&line.p, start);
+
+        let end = Event::End {
+            point: &line.q,
+            line: &line,
+        };
+        queue.insert(&line.q, end);
+    }
+
+    return queue;
 }
 
 fn main() {
