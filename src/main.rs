@@ -124,9 +124,41 @@ fn intersect(p1: &Point, p2: &Point, q1: &Point, q2: &Point) -> bool {
 
 impl Line {
     fn intersection(&self, other: &Line) -> Option<Point> {
-        let intersect = intersect(&self.p, &self.q, &other.p, &other.q);
+        let p1 = &self.p;
+        let p2 = &self.q;
+        let q1 = &other.p;
+        let q2 = &other.q;
 
-        todo!()
+        let ccwq1 = ccw(p1, p2, q1);
+        let ccwq2 = ccw(p1, p2, q2);
+        if ccwq1 * ccwq2 > 0.0 {
+            return None;
+        }
+
+        let ccwp1 = ccw(q1, q2, p1);
+        let ccwp2 = ccw(q1, q2, p2);
+        if ccwp1 * ccwp2 > 0.0 {
+            return None;
+        }
+
+        if ccwq1 == 0.0 && ccwq2 == 0.0 && ccwp1 == 0.0 && ccwp2 == 0.0 {
+            panic!("Two colinear lines were detected: {:?}, {:?}", self, other);
+            // lines are colinear --> check for overlap
+            // let overlap = overlap_for_colinear(p1, p2, q1, q2);
+            // if overlap {
+            //     return Some(Point { x: 0., y: 0. });
+            // } else {
+            //     return None;
+            // }
+        }
+
+        // Determine intersection point
+        let r_ab = (ccwq2 / ccwq1).abs();
+        let a = r_ab / (r_ab + 1.0);
+        let i_x = q2.x + a * (q1.x - q2.x);
+        let i_y = q2.y + a * (q1.y - q2.y);
+
+        Some(Point { x: i_x, y: i_y })
     }
 }
 
@@ -229,17 +261,17 @@ fn sweep_line_intersections(mut queue: BTreeMap<&Point, Event>) -> i64 {
                 let line_above = segments[index_line + 1].clone();
                 //let line_below = segments[index_line - 1].clone();
 
-                if let Some(inter) = line.line.intersection(&line_above.line) {
-                    let key = inter.clone();
-                    queue.insert(
-                        &key,
-                        Event::Intersection {
-                            point: &inter,
-                            line: &line.line,
-                            other_line: &line_above.line,
-                        },
-                    );
-                }
+                // if let Some(inter) = line.line.intersection(&line_above.line) {
+                //     let key = inter.clone();
+                //     queue.insert(
+                //         &key,
+                //         Event::Intersection {
+                //             point: &inter,
+                //             line: &line.line,
+                //             other_line: &line_above.line,
+                //         },
+                //     );
+                // }
 
                 // if let Some(intersection_above) = line.line.intersection(&line_above.line) {
                 //     let key = intersection_above.clone();
@@ -346,5 +378,29 @@ mod tests {
         let q2 = Point { x: 0.0, y: 0.5 };
         assert!(q2 < p);
         assert!(p > q2);
+    }
+
+    #[test]
+    fn test_intersect() {
+        let line1 = Line::from_str("0 0 1 1").expect("Failed to parse first line");
+        let line2_s = Line::from_str("0 1 1 0").expect("Failed to parse second line");
+
+        assert!(line1.intersection(&line2_s).is_some());
+        assert_eq!(
+            line1.intersection(&line2_s).unwrap(),
+            Point { x: 0.5, y: 0.5 }
+        );
+    }
+
+    #[test]
+    fn test_intersect_cross() {
+        let line1 = Line::from_str("0 1 2 1").expect("Failed to parse first line");
+        let line2_s = Line::from_str("1 2 1 0").expect("Failed to parse second line");
+
+        assert!(line1.intersection(&line2_s).is_some());
+        assert_eq!(
+            line1.intersection(&line2_s).unwrap(),
+            Point { x: 1.0, y: 1.0 }
+        );
     }
 }
