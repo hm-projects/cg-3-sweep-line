@@ -266,42 +266,28 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> i64 {
 
                 let index_line = segments.iter().position(|e| &e.line == &line).unwrap();
                 let line = segments[index_line].clone();
-                let line_above = segments[index_line + 1].clone();
-                let line_below = segments[index_line - 1].clone();
 
-                // if let Some(inter) = line.line.intersection(&line_above.line) {
-                //     let key = inter.clone();
-                //     queue.insert(Event::Intersection {
-                //         point: &inter.clone(),
-                //         line: &line.line,
-                //         other_line: &line_above.line,
-                //     });
-                // }
+                if let Some(line_above) = segments.get(index_line + 1) {
+                    if let Some(inter) = line.line.intersection(&line_above.line) {
+                        queue.insert(Event::Intersection {
+                            point: inter,
+                            line: line.line.clone(),
+                            other_line: line_above.line.clone(),
+                        });
+                    };
+                };
 
-                // if let Some(intersection_above) = line.line.intersection(&line_above.line) {
-                //     let key = intersection_above.clone();
-                //     queue.insert(
-                //         &key,
-                //         Event::Intersection {
-                //             point: &intersection_above.clone(),
-                //             line: &line.line,
-                //             other_line: &line_above.line,
-                //         },
-                //     );
-                // };
-                // if let Some(intersection_below) = line.line.intersection(&line_below.line) {
-                //     queue.insert(
-                //         &intersection_below,
-                //         Event::Intersection {
-                //             point: &intersection_below,
-                //             line: &line.line,
-                //             other_line: &line_above.line,
-                //         },
-                //     );
-                // };
-
-                // TODO: detect change in order of line segments
-                // TODO: if changed calc xy of intersection and add to queue
+                if index_line > 0 {
+                    if let Some(line_below) = segments.get(index_line - 1).clone() {
+                        if let Some(inter) = line.line.intersection(&line_below.line) {
+                            queue.insert(Event::Intersection {
+                                point: inter,
+                                line: line.line,
+                                other_line: line_below.line.clone(),
+                            });
+                        };
+                    };
+                }
             }
             Event::End { point: _, line } => {
                 let index = segments.iter().position(|e| &e.line == &line).unwrap();
@@ -350,8 +336,7 @@ fn main() {
     for param in params.iter().skip(1) {
         let lines = read_file(param);
 
-        let mut queue = initialize(lines);
-        println!("{:#?}", queue);
+        let queue = initialize(lines);
         let intersections = sweep_line_intersections(queue);
         println!("intersects: {}", intersections);
 
