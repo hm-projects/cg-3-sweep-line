@@ -162,7 +162,7 @@ impl Line {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
 enum Event {
     Begin {
         point: Point,
@@ -186,6 +186,12 @@ impl Event {
             Event::End { point, .. } => point,
             Event::Intersection { point, .. } => point,
         }
+    }
+}
+
+impl PartialEq for Event {
+    fn eq(&self, other: &Self) -> bool {
+        self.point() == other.point()
     }
 }
 
@@ -255,7 +261,13 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> i64 {
     let mut segments: Vec<SweepLineElement> = Vec::new();
     let mut intersections = 0;
 
+    let mut last_x = 0.0;
+
     while let Some(event) = queue.pop_first() {
+        last_x = event.point().x;
+        //println!("{:?}", &event);
+        //println!("{:?}", &segments);
+        //println!("{:?}", &queue);
         match event {
             Event::Begin { point, line } => {
                 segments.push(SweepLineElement {
@@ -269,46 +281,50 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> i64 {
 
                 if let Some(line_above) = segments.get(index_line + 1) {
                     if let Some(inter) = line.line.intersection(&line_above.line) {
-                        queue.insert(Event::Intersection {
-                            point: inter,
-                            line: line.line.clone(),
-                            other_line: line_above.line.clone(),
-                        });
+                        if inter.x > last_x {
+                            queue.insert(Event::Intersection {
+                                point: inter,
+                                line: line.line.clone(),
+                                other_line: line_above.line.clone(),
+                            });
+                        }
                     };
                 };
 
                 if index_line > 0 {
                     if let Some(line_below) = segments.get(index_line - 1).clone() {
                         if let Some(inter) = line.line.intersection(&line_below.line) {
-                            queue.insert(Event::Intersection {
-                                point: inter,
-                                line: line.line,
-                                other_line: line_below.line.clone(),
-                            });
+                            if inter.x > last_x {
+                                queue.insert(Event::Intersection {
+                                    point: inter,
+                                    line: line.line,
+                                    other_line: line_below.line.clone(),
+                                });
+                            }
                         };
                     };
                 }
             }
             Event::End { point: _, line } => {
-                let index = segments.iter().position(|e| &e.line == &line).unwrap();
-
                 let index_line = segments.iter().position(|e| &e.line == &line).unwrap();
 
                 if index_line > 0 {
                     if let Some(line_below) = segments.get(index_line - 1).clone() {
                         if let Some(line_above) = segments.get(index_line + 1) {
                             if let Some(inter) = line_below.line.intersection(&line_above.line) {
-                                queue.insert(Event::Intersection {
-                                    point: inter,
-                                    line: line_below.line.clone(),
-                                    other_line: line_above.line.clone(),
-                                });
+                                if inter.x > last_x {
+                                    queue.insert(Event::Intersection {
+                                        point: inter,
+                                        line: line_below.line.clone(),
+                                        other_line: line_above.line.clone(),
+                                    });
+                                };
                             };
                         };
                     };
                 }
 
-                segments.remove(index);
+                segments.remove(index_line);
             }
             Event::Intersection {
                 point: _,
@@ -321,15 +337,51 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> i64 {
                     .position(|e| &e.line == &other_line)
                     .unwrap();
 
+                if index_line.abs_diff(index_other_line) != 1 {
+                    panic!("Two lines with indices too far apart")
+                }
+
                 // TODO: this is probably incorrect
                 let y = segments[index_line].y;
-                let other_y = segments[index_line].y;
+                let other_y = segments[index_other_line].y;
                 segments[index_line].y = other_y;
                 segments[index_other_line].y = y;
 
                 //segments.swap(index_line, index_other_line);
                 segments.sort();
 
+                let smaller = index_line.min(index_other_line);
+                let bigger = index_line.max(index_other_line);
+
+                if let Some(line_above) = segments.get(bigger + 1) {
+                    if let Some(line) = segments.get(bigger) {
+                        if let Some(inter) = line.line.intersection(&line_above.line) {
+                            if inter.x > last_x {
+                                queue.insert(Event::Intersection {
+                                    point: inter,
+                                    line: line.line.clone(),
+                                    other_line: line_above.line.clone(),
+                                });
+                            }
+                        };
+                    };
+                };
+
+                if smaller > 0 {
+                    if let Some(line_below) = segments.get(smaller - 1) {
+                        if let Some(line) = segments.get(smaller) {
+                            if let Some(inter) = line.line.intersection(&line_below.line) {
+                                if inter.x > last_x {
+                                    queue.insert(Event::Intersection {
+                                        point: inter,
+                                        line: line.line.clone(),
+                                        other_line: line_below.line.clone(),
+                                    });
+                                }
+                            };
+                        };
+                    };
+                }
                 intersections += 1;
             }
         }
