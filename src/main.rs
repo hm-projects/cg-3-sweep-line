@@ -1,5 +1,5 @@
 use std::cmp::{max, min};
-use std::collections::BTreeMap;
+use std::collections::{BTreeSet};
 use std::{env, fs};
 use std::{num::ParseFloatError, str::FromStr};
 
@@ -189,14 +189,22 @@ impl Event<'_> {
     }
 }
 
+impl Eq for Event<'_> {}
+
 impl PartialOrd for Event<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         return self.point().partial_cmp(other.point());
     }
 }
 
-fn initialize(lines: &Vec<Line>) -> BTreeMap<&Point, Event> {
-    let mut queue = BTreeMap::new();
+impl Ord for Event<'_> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.point().cmp(other.point())
+    }
+}
+
+fn initialize(lines: &Vec<Line>) -> BTreeSet<Event> {
+    let mut queue = BTreeSet::new();
 
     for line in lines {
         let smaller = min(&line.p, &line.q);
@@ -206,13 +214,13 @@ fn initialize(lines: &Vec<Line>) -> BTreeMap<&Point, Event> {
             point: smaller,
             line: &line,
         };
-        queue.insert(smaller, start);
+        queue.insert(start);
 
         let end = Event::End {
             point: larger,
             line: &line,
         };
-        queue.insert(larger, end);
+        queue.insert(end);
     }
 
     return queue;
@@ -243,11 +251,11 @@ impl Ord for SweepLineElement {
     }
 }
 
-fn sweep_line_intersections(mut queue: BTreeMap<&Point, Event>) -> i64 {
+fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> i64 {
     let mut segments: Vec<SweepLineElement> = Vec::new();
     let mut intersections = 0;
 
-    while let Some((_, event)) = queue.pop_first() {
+    while let Some((event)) = queue.pop_first() {
         match event {
             Event::Begin { point, line } => {
                 segments.push(SweepLineElement {
