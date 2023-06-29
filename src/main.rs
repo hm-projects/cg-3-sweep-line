@@ -1,5 +1,5 @@
 use std::cmp::{max, min};
-use std::collections::{BTreeSet};
+use std::collections::BTreeSet;
 use std::{env, fs};
 use std::{num::ParseFloatError, str::FromStr};
 
@@ -163,23 +163,23 @@ impl Line {
 }
 
 #[derive(Debug, PartialEq)]
-enum Event<'a> {
+enum Event {
     Begin {
-        point: &'a Point,
-        line: &'a Line,
+        point: Point,
+        line: Line,
     },
     End {
-        point: &'a Point,
-        line: &'a Line,
+        point: Point,
+        line: Line,
     },
     Intersection {
-        point: &'a Point,
-        line: &'a Line,
-        other_line: &'a Line,
+        point: Point,
+        line: Line,
+        other_line: Line,
     },
 }
 
-impl Event<'_> {
+impl Event {
     fn point(&self) -> &Point {
         match self {
             Event::Begin { point, .. } => point,
@@ -189,21 +189,21 @@ impl Event<'_> {
     }
 }
 
-impl Eq for Event<'_> {}
+impl Eq for Event {}
 
-impl PartialOrd for Event<'_> {
+impl PartialOrd for Event {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         return self.point().partial_cmp(other.point());
     }
 }
 
-impl Ord for Event<'_> {
+impl Ord for Event {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         self.point().cmp(other.point())
     }
 }
 
-fn initialize(lines: &Vec<Line>) -> BTreeSet<Event> {
+fn initialize(lines: Vec<Line>) -> BTreeSet<Event> {
     let mut queue = BTreeSet::new();
 
     for line in lines {
@@ -211,14 +211,14 @@ fn initialize(lines: &Vec<Line>) -> BTreeSet<Event> {
         let larger = max(&line.p, &line.q);
 
         let start = Event::Begin {
-            point: smaller,
-            line: &line,
+            point: smaller.to_owned(),
+            line: line.clone(),
         };
         queue.insert(start);
 
         let end = Event::End {
-            point: larger,
-            line: &line,
+            point: larger.to_owned(),
+            line,
         };
         queue.insert(end);
     }
@@ -255,7 +255,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> i64 {
     let mut segments: Vec<SweepLineElement> = Vec::new();
     let mut intersections = 0;
 
-    while let Some((event)) = queue.pop_first() {
+    while let Some(event) = queue.pop_first() {
         match event {
             Event::Begin { point, line } => {
                 segments.push(SweepLineElement {
@@ -264,21 +264,18 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> i64 {
                 });
                 segments.sort();
 
-                let index_line = segments.iter().position(|e| &e.line == line).unwrap();
+                let index_line = segments.iter().position(|e| &e.line == &line).unwrap();
                 let line = segments[index_line].clone();
                 let line_above = segments[index_line + 1].clone();
-                //let line_below = segments[index_line - 1].clone();
+                let line_below = segments[index_line - 1].clone();
 
                 // if let Some(inter) = line.line.intersection(&line_above.line) {
                 //     let key = inter.clone();
-                //     queue.insert(
-                //         &key,
-                //         Event::Intersection {
-                //             point: &inter,
-                //             line: &line.line,
-                //             other_line: &line_above.line,
-                //         },
-                //     );
+                //     queue.insert(Event::Intersection {
+                //         point: &inter.clone(),
+                //         line: &line.line,
+                //         other_line: &line_above.line,
+                //     });
                 // }
 
                 // if let Some(intersection_above) = line.line.intersection(&line_above.line) {
@@ -307,7 +304,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> i64 {
                 // TODO: if changed calc xy of intersection and add to queue
             }
             Event::End { point: _, line } => {
-                let index = segments.iter().position(|e| &e.line == line).unwrap();
+                let index = segments.iter().position(|e| &e.line == &line).unwrap();
                 segments.remove(index);
             }
             Event::Intersection {
@@ -315,8 +312,11 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> i64 {
                 line,
                 other_line,
             } => {
-                let index_line = segments.iter().position(|e| &e.line == line).unwrap();
-                let index_other_line = segments.iter().position(|e| &e.line == other_line).unwrap();
+                let index_line = segments.iter().position(|e| &e.line == &line).unwrap();
+                let index_other_line = segments
+                    .iter()
+                    .position(|e| &e.line == &other_line)
+                    .unwrap();
 
                 // TODO: this is probably incorrect
                 let y = segments[index_line].y;
@@ -350,7 +350,7 @@ fn main() {
     for param in params.iter().skip(1) {
         let lines = read_file(param);
 
-        let mut queue = initialize(&lines);
+        let mut queue = initialize(lines);
         println!("{:#?}", queue);
         let intersections = sweep_line_intersections(queue);
         println!("intersects: {}", intersections);
