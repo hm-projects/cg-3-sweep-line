@@ -291,6 +291,23 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> i64 {
             }
             Event::End { point: _, line } => {
                 let index = segments.iter().position(|e| &e.line == &line).unwrap();
+
+                let index_line = segments.iter().position(|e| &e.line == &line).unwrap();
+
+                if index_line > 0 {
+                    if let Some(line_below) = segments.get(index_line - 1).clone() {
+                        if let Some(line_above) = segments.get(index_line + 1) {
+                            if let Some(inter) = line_below.line.intersection(&line_above.line) {
+                                queue.insert(Event::Intersection {
+                                    point: inter,
+                                    line: line_below.line.clone(),
+                                    other_line: line_above.line.clone(),
+                                });
+                            };
+                        };
+                    };
+                }
+
                 segments.remove(index);
             }
             Event::Intersection {
