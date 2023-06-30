@@ -579,4 +579,49 @@ mod tests {
         assert_eq!(intersections[1].x, 3.25);
         assert_eq!(intersections[1].y, 1.0);
     }
+
+    #[test]
+    fn test_three_lines_same_end_x() {
+        let l1 = Line::from_str("0 1 5 1").unwrap();
+        let l2 = Line::from_str("1.5 2 2.5 1.5").unwrap();
+        let l3 = Line::from_str("0.5 0.5 2.5 2").unwrap();
+
+        let queue = initialize(vec![l1, l2, l3]);
+        let intersections = sweep_line_intersections(queue);
+
+        assert_eq!(intersections.len(), 2);
+        assert_eq!(intersections[0].x, 1.166666666666667);
+        assert_eq!(intersections[0].y, 1.0);
+
+        assert_eq!(intersections[1].x, 2.1);
+        assert_eq!(intersections[1].y, 1.7);
+    }
+
+    #[test]
+    fn test_four_lines() {
+        let l1 = Line::from_str("0 1 5 1").unwrap();
+        let l2 = Line::from_str("1 1.5 2 0.5").unwrap();
+        let l3 = Line::from_str("1.5 0.5 3 2").unwrap();
+        let l4 = Line::from_str("2 2 3.5 0.5").unwrap();
+
+        let queue = initialize(vec![l1, l2, l3, l4]);
+        let intersections = sweep_line_intersections(queue);
+
+        assert_eq!(intersections.len(), 5);
+
+        assert_eq!(intersections[0].x, 1.4999999999999996); // floating point shenanigans
+        assert_eq!(intersections[0].y, 1.0);
+
+        assert_eq!(intersections[1].x, 1.75);
+        assert_eq!(intersections[1].y, 0.75);
+
+        assert_eq!(intersections[2].x, 2.0);
+        assert_eq!(intersections[2].y, 1.0);
+
+        assert_eq!(intersections[3].x, 2.5);
+        assert_eq!(intersections[3].y, 1.5);
+
+        assert_eq!(intersections[4].x, 3.0);
+        assert_eq!(intersections[4].y, 1.0);
+    }
 }
