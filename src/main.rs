@@ -17,7 +17,7 @@ impl Display for Point {
 }
 
 fn ccw(p: &Point, q: &Point, r: &Point) -> f64 {
-    return (p.x * q.y - p.y * q.x) + (q.x * r.y - q.y * r.x) + (p.y * r.x - p.x * r.y);
+    (p.x * q.y - p.y * q.x) + (q.x * r.y - q.y * r.x) + (p.y * r.x - p.x * r.y)
 }
 
 impl Eq for Point {}
@@ -39,7 +39,7 @@ impl Point {
             y: y.parse()?,
         };
 
-        return Ok(p);
+        Ok(p)
     }
 }
 
@@ -61,20 +61,20 @@ impl FromStr for Line {
     type Err = ParseLineError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let splits: Vec<_> = s.split(" ").collect();
+        let splits: Vec<_> = s.split(' ').collect();
 
         if splits.len() != 4 {
             return Err(ParseLineError::NotFourElements);
         }
 
         let p =
-            Point::from_str(&splits[0], &splits[1]).map_err(|e| ParseLineError::ParseFloat(e))?;
+            Point::from_str(splits[0], splits[1]).map_err(ParseLineError::ParseFloat)?;
         let q =
-            Point::from_str(&splits[2], &splits[3]).map_err(|e| ParseLineError::ParseFloat(e))?;
+            Point::from_str(splits[2], splits[3]).map_err(ParseLineError::ParseFloat)?;
 
         let line = Line { p, q };
 
-        return Ok(line);
+        Ok(line)
     }
 }
 
@@ -100,7 +100,7 @@ fn overlap_for_colinear(p1: &Point, p2: &Point, q1: &Point, q2: &Point) -> bool 
 
     let qy_not_in_py = q_smallest_y > p_largest_y || q_largest_y < p_smallest_y;
 
-    return !qy_not_in_py;
+    !qy_not_in_py
 }
 
 fn intersect(p1: &Point, p2: &Point, q1: &Point, q2: &Point) -> bool {
@@ -126,7 +126,7 @@ fn intersect(p1: &Point, p2: &Point, q1: &Point, q2: &Point) -> bool {
         return overlap_for_colinear(p1, p2, q1, q2);
     }
 
-    return true;
+    true
 }
 
 impl Line {
@@ -256,7 +256,7 @@ fn initialize(lines: Vec<Line>) -> BTreeSet<Event> {
         queue.insert(end);
     }
 
-    return queue;
+    queue
 }
 
 #[derive(Debug, Clone)]
@@ -324,7 +324,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                 };
 
                 if index_line > 0 {
-                    if let Some(line_below) = segments.get(index_line - 1).clone() {
+                    if let Some(line_below) = segments.get(index_line - 1) {
                         if let Some(inter) = line.line.intersection(&line_below.line) {
                             if inter.x > last_x {
                                 queue.insert(Event::Intersection {
@@ -341,7 +341,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                 let index_line = segments.iter().position(|e| &e.line == &line).unwrap();
 
                 if index_line > 0 {
-                    if let Some(line_below) = segments.get(index_line - 1).clone() {
+                    if let Some(line_below) = segments.get(index_line - 1) {
                         if let Some(line_above) = segments.get(index_line + 1) {
                             if let Some(inter) = line_below.line.intersection(&line_above.line) {
                                 if inter.x > last_x {
@@ -472,7 +472,7 @@ mod tests {
         let q = Point { x: 2.0, y: 3.0 };
 
         assert!(p < q);
-        assert!(!(q < p));
+        assert!(q >= p);
         assert!(p == p);
         assert!(q == q);
 
@@ -529,14 +529,14 @@ mod tests {
         let p = Point { x: 0.0, y: 1.0 };
         let q = Point { x: 5.0, y: 1.0 };
         let line = Line {
-            p: p.clone(),
-            q: q.clone(),
+            p,
+            q,
         };
         let p2 = Point { x: 1.0, y: 0.0 };
         let q2 = Point { x: 4.0, y: 2.0 };
         let line2 = Line {
-            p: p2.clone(),
-            q: q2.clone(),
+            p: p2,
+            q: q2,
         };
         let queue = initialize(vec![line, line2]);
         let intersections = sweep_line_intersections(queue);
