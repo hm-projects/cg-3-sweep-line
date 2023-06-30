@@ -1,5 +1,6 @@
 use std::cmp::{max, min};
 use std::collections::BTreeSet;
+use std::fmt::{self, Display};
 use std::{env, fs};
 use std::{num::ParseFloatError, str::FromStr};
 
@@ -7,6 +8,12 @@ use std::{num::ParseFloatError, str::FromStr};
 struct Point {
     x: f64,
     y: f64,
+}
+
+impl Display for Point {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
 }
 
 fn ccw(p: &Point, q: &Point, r: &Point) -> f64 {
@@ -247,21 +254,23 @@ impl Eq for SweepLineElement {}
 
 impl PartialOrd for SweepLineElement {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.y.partial_cmp(&other.y)
+        // Reverse order
+        other.y.partial_cmp(&self.y)
     }
 }
 
 impl Ord for SweepLineElement {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        f64::total_cmp(&self.y, &other.y)
+        // Reverse order
+        f64::total_cmp(&other.y, &self.y)
     }
 }
 
-fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> i64 {
+fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
     let mut segments: Vec<SweepLineElement> = Vec::new();
-    let mut intersections = 0;
+    let mut intersections = vec![];
 
-    let mut last_x = 0.0;
+    let mut last_x;
 
     while let Some(event) = queue.pop_first() {
         last_x = event.point().x;
@@ -327,7 +336,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> i64 {
                 segments.remove(index_line);
             }
             Event::Intersection {
-                point: _,
+                point: intersection_point,
                 line,
                 other_line,
             } => {
@@ -338,7 +347,10 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> i64 {
                     .unwrap();
 
                 if index_line.abs_diff(index_other_line) != 1 {
-                    panic!("Two lines with indices too far apart")
+                    panic!(
+                        "Two lines with indices too far apart: {}, {}. \nSegments are: {:?}",
+                        index_line, index_other_line, segments
+                    )
                 }
 
                 // TODO: this is probably incorrect
@@ -382,7 +394,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> i64 {
                         };
                     };
                 }
-                intersections += 1;
+                intersections.push(intersection_point);
             }
         }
     }
@@ -407,7 +419,11 @@ fn main() {
 
         let queue = initialize(lines);
         let intersections = sweep_line_intersections(queue);
-        println!("intersects: {}", intersections);
+        intersections
+            .iter()
+            .map(|p| format!("{}", p))
+            .for_each(|p| println!("{}", p));
+        println!("intersections: {}", intersections.len());
 
         //println!("{:#?}", queue);
     }
