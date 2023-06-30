@@ -67,10 +67,8 @@ impl FromStr for Line {
             return Err(ParseLineError::NotFourElements);
         }
 
-        let p =
-            Point::from_str(splits[0], splits[1]).map_err(ParseLineError::ParseFloat)?;
-        let q =
-            Point::from_str(splits[2], splits[3]).map_err(ParseLineError::ParseFloat)?;
+        let p = Point::from_str(splits[0], splits[1]).map_err(ParseLineError::ParseFloat)?;
+        let q = Point::from_str(splits[2], splits[3]).map_err(ParseLineError::ParseFloat)?;
 
         let line = Line { p, q };
 
@@ -288,13 +286,13 @@ impl Ord for SweepLineElement {
 
 fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
     let mut segments: Vec<SweepLineElement> = Vec::new();
-    let mut intersections = vec![];
+    let mut intersections_set: BTreeSet<Point> = BTreeSet::new();
 
     let mut last_x = 0.0;
 
     while let Some(event) = queue.pop_first() {
         if event.point().x < last_x {
-            panic!("Got an event that lies behind the sweep line")
+            println!("Sweep line went backwards: {} {:?}", last_x, event)
         }
         last_x = event.point().x;
         //println!("{:?}", &event);
@@ -313,7 +311,8 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
 
                 if let Some(line_above) = segments.get(index_line + 1) {
                     if let Some(inter) = line.line.intersection(&line_above.line) {
-                        if inter.x > last_x {
+                        if !intersections_set.contains(&inter) {
+                            intersections_set.insert(inter.clone());
                             queue.insert(Event::Intersection {
                                 point: inter,
                                 line: line.line.clone(),
@@ -326,7 +325,8 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                 if index_line > 0 {
                     if let Some(line_below) = segments.get(index_line - 1) {
                         if let Some(inter) = line.line.intersection(&line_below.line) {
-                            if inter.x > last_x {
+                            if !intersections_set.contains(&inter) {
+                                intersections_set.insert(inter.clone());
                                 queue.insert(Event::Intersection {
                                     point: inter,
                                     line: line.line,
@@ -344,7 +344,8 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                     if let Some(line_below) = segments.get(index_line - 1) {
                         if let Some(line_above) = segments.get(index_line + 1) {
                             if let Some(inter) = line_below.line.intersection(&line_above.line) {
-                                if inter.x > last_x {
+                                if !intersections_set.contains(&inter) {
+                                    intersections_set.insert(inter.clone());
                                     queue.insert(Event::Intersection {
                                         point: inter,
                                         line: line_below.line.clone(),
@@ -369,18 +370,20 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                     .position(|e| &e.line == &other_line)
                     .unwrap();
 
-                // if index_line.abs_diff(index_other_line) != 1 {
-                //     panic!(
-                //         "Two lines with indices too far apart: {}, {}. \nSegments are: {:?}",
-                //         index_line, index_other_line, segments
-                //     )
-                // }
+                if index_line.abs_diff(index_other_line) != 1 {
+                    println!(
+                        "Two lines with indices too far apart: {}, {}. \nSegments are: {:?}",
+                        index_line, index_other_line, segments
+                    )
+                }
 
-                // TODO: this is probably incorrect
-                let y = segments[index_line].y;
-                let other_y = segments[index_other_line].y;
-                segments[index_line].y = other_y;
-                segments[index_other_line].y = y;
+                if index_line < index_other_line {
+                    segments[index_line].y = intersection_point.y;
+                    segments[index_other_line].y = intersection_point.y + 0.000000001;
+                } else {
+                    segments[index_line].y = intersection_point.y + 0.000000001;
+                    segments[index_other_line].y = intersection_point.y;
+                }
 
                 //segments.swap(index_line, index_other_line);
                 segments.sort();
@@ -391,7 +394,8 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                 if let Some(line_above) = segments.get(bigger + 1) {
                     if let Some(line) = segments.get(bigger) {
                         if let Some(inter) = line.line.intersection(&line_above.line) {
-                            if inter.x > last_x {
+                            if !intersections_set.contains(&inter) {
+                                intersections_set.insert(inter.clone());
                                 queue.insert(Event::Intersection {
                                     point: inter,
                                     line: line.line.clone(),
@@ -406,7 +410,8 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                     if let Some(line_below) = segments.get(smaller - 1) {
                         if let Some(line) = segments.get(smaller) {
                             if let Some(inter) = line.line.intersection(&line_below.line) {
-                                if inter.x > last_x {
+                                if !intersections_set.contains(&inter) {
+                                    intersections_set.insert(inter.clone());
                                     queue.insert(Event::Intersection {
                                         point: inter,
                                         line: line.line.clone(),
@@ -417,12 +422,12 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                         };
                     };
                 }
-                intersections.push(intersection_point);
+                intersections_set.insert(intersection_point.clone());
             }
         }
     }
 
-    intersections
+    intersections_set.into_iter().collect()
 }
 
 fn read_file(file: &str) -> Vec<Line> {
@@ -435,7 +440,8 @@ fn read_file(file: &str) -> Vec<Line> {
 }
 
 fn main() {
-    let params = env::args().collect::<Vec<_>>();
+    //let params = env::args().collect::<Vec<_>>();
+    let params = vec!["", "./data/s_1000_10.dat"];
 
     for param in params.iter().skip(1) {
         let lines = read_file(param);
@@ -528,16 +534,10 @@ mod tests {
     fn test_trivial_sweep() {
         let p = Point { x: 0.0, y: 1.0 };
         let q = Point { x: 5.0, y: 1.0 };
-        let line = Line {
-            p,
-            q,
-        };
+        let line = Line { p, q };
         let p2 = Point { x: 1.0, y: 0.0 };
         let q2 = Point { x: 4.0, y: 2.0 };
-        let line2 = Line {
-            p: p2,
-            q: q2,
-        };
+        let line2 = Line { p: p2, q: q2 };
         let queue = initialize(vec![line, line2]);
         let intersections = sweep_line_intersections(queue);
 
