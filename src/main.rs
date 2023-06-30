@@ -226,7 +226,7 @@ fn initialize(lines: Vec<Line>) -> BTreeSet<Event> {
     let mut queue = BTreeSet::new();
 
     for line in lines {
-        if line.p.y == line.q.y {
+        if line.p.x == line.q.x {
             panic!("Vertical line detected: {:?}", line)
         }
 
@@ -482,6 +482,25 @@ mod tests {
     }
 
     #[test]
+    fn test_init() {
+        let p = Point { x: 1.0, y: 1.0 };
+        let q = Point { x: 0.0, y: 0.0 };
+        let line = Line {
+            p: p.clone(),
+            q: q.clone(),
+        };
+        let mut queue = initialize(vec![line]);
+
+        assert_eq!(queue.len(), 2);
+
+        let first = queue.pop_first().unwrap();
+        assert_eq!(first.point(), &q);
+
+        let second = queue.pop_first().unwrap();
+        assert_eq!(second.point(), &p);
+    }
+
+    #[test]
     fn test_intersect() {
         let line1 = Line::from_str("0 0 1 1").expect("Failed to parse first line");
         let line2_s = Line::from_str("0 1 1 0").expect("Failed to parse second line");
@@ -503,5 +522,61 @@ mod tests {
             line1.intersection(&line2_s).unwrap(),
             Point { x: 1.0, y: 1.0 }
         );
+    }
+
+    #[test]
+    fn test_trivial_sweep() {
+        let p = Point { x: 0.0, y: 1.0 };
+        let q = Point { x: 5.0, y: 1.0 };
+        let line = Line {
+            p: p.clone(),
+            q: q.clone(),
+        };
+        let p2 = Point { x: 1.0, y: 0.0 };
+        let q2 = Point { x: 4.0, y: 2.0 };
+        let line2 = Line {
+            p: p2.clone(),
+            q: q2.clone(),
+        };
+        let queue = initialize(vec![line, line2]);
+        let intersections = sweep_line_intersections(queue);
+
+        assert_eq!(intersections.len(), 1);
+        assert_eq!(intersections[0].x, 2.5);
+        assert_eq!(intersections[0].y, 1.0);
+    }
+
+    #[test]
+    fn test_three_lines() {
+        let l1 = Line::from_str("0 1 5 1").unwrap();
+        let l2 = Line::from_str("1.5 2.5 4 0.5").unwrap();
+        let l3 = Line::from_str("0.5 1.5 4 2.5").unwrap();
+
+        let queue = initialize(vec![l1, l2, l3]);
+        let intersections = sweep_line_intersections(queue);
+
+        assert_eq!(intersections.len(), 2);
+        assert_eq!(intersections[0].x, 2.1578947368421053);
+        assert_eq!(intersections[0].y, 1.973684210526316);
+
+        assert_eq!(intersections[1].x, 3.375);
+        assert_eq!(intersections[1].y, 1.0);
+    }
+
+    #[test]
+    fn test_three_lines_different_order() {
+        let l1 = Line::from_str("0 1 5 1").unwrap();
+        let l2 = Line::from_str("1 2.5 4 0.5").unwrap();
+        let l3 = Line::from_str("1.5 1.5 4 2.5").unwrap();
+
+        let queue = initialize(vec![l1, l2, l3]);
+        let intersections = sweep_line_intersections(queue);
+
+        assert_eq!(intersections.len(), 2);
+        assert_eq!(intersections[0].x, 2.125);
+        assert_eq!(intersections[0].y, 1.75);
+
+        assert_eq!(intersections[1].x, 3.25);
+        assert_eq!(intersections[1].y, 1.0);
     }
 }
