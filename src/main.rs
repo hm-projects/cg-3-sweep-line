@@ -1,5 +1,5 @@
 use std::cmp::{max, min};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashSet};
 use std::fmt::{self, Display};
 use std::{env, fs};
 use std::{num::ParseFloatError, str::FromStr};
@@ -220,6 +220,10 @@ fn initialize(lines: Vec<Line>) -> BTreeSet<Event> {
     let mut queue = BTreeSet::new();
 
     for line in lines {
+        if line.p.y == line.q.y {
+            panic!("Vertical line detected: {:?}", line)
+        }
+
         let smaller = min(&line.p, &line.q);
         let larger = max(&line.p, &line.q);
 
@@ -227,12 +231,18 @@ fn initialize(lines: Vec<Line>) -> BTreeSet<Event> {
             point: smaller.to_owned(),
             line: line.clone(),
         };
+        if queue.contains(&start) {
+            panic!("Duplicate point detected: {:?}", start)
+        }
         queue.insert(start);
 
         let end = Event::End {
             point: larger.to_owned(),
             line,
         };
+        if queue.contains(&end) {
+            panic!("Duplicate point detected: {:?}", end)
+        }
         queue.insert(end);
     }
 
