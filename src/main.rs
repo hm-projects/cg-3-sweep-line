@@ -1,5 +1,5 @@
 use std::cmp::{max, min};
-use std::collections::{BTreeSet, HashSet};
+use std::collections::BTreeSet;
 use std::fmt::{self, Display};
 use std::{env, fs};
 use std::{num::ParseFloatError, str::FromStr};
@@ -12,7 +12,7 @@ struct Point {
 
 impl Display for Point {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "({}, {})", self.x, self.y)
+        write!(f, "{} {}", self.x, self.y)
     }
 }
 
@@ -130,6 +130,12 @@ fn intersect(p1: &Point, p2: &Point, q1: &Point, q2: &Point) -> bool {
 }
 
 impl Line {
+    fn len(&self) -> f64 {
+        let dx = self.p.x - self.q.x;
+        let dy = self.p.y - self.q.y;
+        f64::sqrt(dx * dx + dy * dy)
+    }
+
     fn intersection(&self, other: &Line) -> Option<Point> {
         let p1 = &self.p;
         let p2 = &self.q;
@@ -224,6 +230,10 @@ fn initialize(lines: Vec<Line>) -> BTreeSet<Event> {
             panic!("Vertical line detected: {:?}", line)
         }
 
+        if line.len() < 0.0 {
+            panic!("Line segment with 0 length detected: {:?}", line)
+        }
+
         let smaller = min(&line.p, &line.q);
         let larger = max(&line.p, &line.q);
 
@@ -280,9 +290,12 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
     let mut segments: Vec<SweepLineElement> = Vec::new();
     let mut intersections = vec![];
 
-    let mut last_x;
+    let mut last_x = 0.0;
 
     while let Some(event) = queue.pop_first() {
+        if event.point().x < last_x {
+            panic!("Got an event that lies behind the sweep line")
+        }
         last_x = event.point().x;
         //println!("{:?}", &event);
         //println!("{:?}", &segments);
@@ -356,12 +369,12 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                     .position(|e| &e.line == &other_line)
                     .unwrap();
 
-                if index_line.abs_diff(index_other_line) != 1 {
-                    panic!(
-                        "Two lines with indices too far apart: {}, {}. \nSegments are: {:?}",
-                        index_line, index_other_line, segments
-                    )
-                }
+                // if index_line.abs_diff(index_other_line) != 1 {
+                //     panic!(
+                //         "Two lines with indices too far apart: {}, {}. \nSegments are: {:?}",
+                //         index_line, index_other_line, segments
+                //     )
+                // }
 
                 // TODO: this is probably incorrect
                 let y = segments[index_line].y;
