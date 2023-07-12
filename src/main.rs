@@ -2,8 +2,8 @@ mod event_queue;
 mod geometry;
 mod sweep_line;
 
-use std::{collections::BTreeSet, io::Write};
 use std::fs;
+use std::{collections::BTreeSet, io::Write};
 
 use event_queue::Event;
 use geometry::{Line, Point};
@@ -15,9 +15,12 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
     let mut sweep_line = SweepLine::new();
     let mut intersections_set: BTreeSet<Point> = BTreeSet::new();
 
-    let mut last_x;
+    let mut last_x = 0.0;
 
     while let Some(event) = queue.pop_first() {
+        if event.point().x < last_x {
+            panic!("Sweep line went backwards!");
+        }
         last_x = event.point().x;
         //println!("{:?}", &event);
         //println!("{:?}", &segments);
