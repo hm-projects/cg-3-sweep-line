@@ -22,6 +22,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
             panic!("Sweep line went backwards!");
         }
         last_x = event.point().x;
+        sweep_line.update(event.point().x);
         //println!("{:?}", &event);
         //println!("{:?}", &segments);
         //println!("{:?}", &queue);

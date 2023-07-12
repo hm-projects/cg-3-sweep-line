@@ -120,4 +120,42 @@ impl Line {
 
         Some(Point { x: i_x, y: i_y })
     }
+
+    pub fn y(&self, x: f64) -> f64 {
+        // calculate the lines y value at a certain x value
+        let m = (self.p.y - self.q.y) / (self.p.x - self.q.x);
+
+        let y = m * (x - self.p.x) + self.p.y;
+        y
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_y() {
+        let line = Line {
+            p: Point { x: 0., y: 0. },
+            q: Point { x: 1., y: 1. },
+        };
+
+        assert_eq!(line.y(0.5), 0.5);
+        assert_eq!(line.y(0.), 0.);
+        assert_eq!(line.y(1.), 1.);
+    }
+
+    // test for line with no m
+    #[test]
+    fn test_y_no_m() {
+        let line = Line {
+            p: Point { x: 0., y: 0. },
+            q: Point { x: 1., y: 0. },
+        };
+
+        assert_eq!(line.y(0.5), 0.);
+        assert_eq!(line.y(0.), 0.);
+        assert_eq!(line.y(1.), 0.);
+    }
 }

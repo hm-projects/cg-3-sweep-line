@@ -66,6 +66,14 @@ impl SweepLine {
         self.elements.remove(index);
     }
 
+    pub fn update(&mut self, x: f64) {
+        // for every line, update the y value to be .y(x)
+        for element in self.elements.iter_mut() {
+            element.y = element.line.y(x);
+        }
+        self.elements.sort();
+    }
+
     pub fn get_neighbors(&self, line: Line) -> Option<Neighbors> {
         let index = self.elements.iter().position(|x| x.line == line);
         let Some(index) = index else {
