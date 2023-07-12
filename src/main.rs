@@ -1,7 +1,7 @@
 use std::cmp::{max, min};
 use std::collections::BTreeSet;
 use std::fmt::{self, Display};
-use std::{env, fs};
+use std::fs;
 use std::{num::ParseFloatError, str::FromStr};
 
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
@@ -210,13 +210,33 @@ impl Eq for Event {}
 
 impl PartialOrd for Event {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        return self.point().partial_cmp(other.point());
+        // compare events first by their point, if point is equal then prefer Intersection over End
+        let point_cmp = self.point().partial_cmp(other.point());
+        match point_cmp {
+            Some(std::cmp::Ordering::Equal) => match (self, other) {
+                (Event::Intersection { .. }, Event::End { .. }) => Some(std::cmp::Ordering::Less),
+                (Event::End { .. }, Event::Intersection { .. }) => {
+                    Some(std::cmp::Ordering::Greater)
+                }
+                _ => Some(std::cmp::Ordering::Equal),
+            },
+            _ => point_cmp,
+        }
     }
 }
 
 impl Ord for Event {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.point().cmp(other.point())
+        // compare events first by their point, if point is equal then prefer Intersection over End
+        let point_cmp = self.point().cmp(other.point());
+        match point_cmp {
+            std::cmp::Ordering::Equal => match (self, other) {
+                (Event::Intersection { .. }, Event::End { .. }) => std::cmp::Ordering::Less,
+                (Event::End { .. }, Event::Intersection { .. }) => std::cmp::Ordering::Greater,
+                _ => std::cmp::Ordering::Equal,
+            },
+            _ => point_cmp,
+        }
     }
 }
 
@@ -311,7 +331,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
 
                 if let Some(line_above) = segments.get(index_line + 1) {
                     if let Some(inter) = line.line.intersection(&line_above.line) {
-                        if !intersections_set.contains(&inter) {
+                        if inter.x > last_x && !intersections_set.contains(&inter) {
                             intersections_set.insert(inter.clone());
                             queue.insert(Event::Intersection {
                                 point: inter,
@@ -325,7 +345,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                 if index_line > 0 {
                     if let Some(line_below) = segments.get(index_line - 1) {
                         if let Some(inter) = line.line.intersection(&line_below.line) {
-                            if !intersections_set.contains(&inter) {
+                            if inter.x > last_x && !intersections_set.contains(&inter) {
                                 intersections_set.insert(inter.clone());
                                 queue.insert(Event::Intersection {
                                     point: inter,
@@ -344,7 +364,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                     if let Some(line_below) = segments.get(index_line - 1) {
                         if let Some(line_above) = segments.get(index_line + 1) {
                             if let Some(inter) = line_below.line.intersection(&line_above.line) {
-                                if !intersections_set.contains(&inter) {
+                                if inter.x > last_x && !intersections_set.contains(&inter) {
                                     intersections_set.insert(inter.clone());
                                     queue.insert(Event::Intersection {
                                         point: inter,
@@ -394,7 +414,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                 if let Some(line_above) = segments.get(bigger + 1) {
                     if let Some(line) = segments.get(bigger) {
                         if let Some(inter) = line.line.intersection(&line_above.line) {
-                            if !intersections_set.contains(&inter) {
+                            if inter.x > last_x && !intersections_set.contains(&inter) {
                                 intersections_set.insert(inter.clone());
                                 queue.insert(Event::Intersection {
                                     point: inter,
@@ -410,7 +430,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                     if let Some(line_below) = segments.get(smaller - 1) {
                         if let Some(line) = segments.get(smaller) {
                             if let Some(inter) = line.line.intersection(&line_below.line) {
-                                if !intersections_set.contains(&inter) {
+                                if inter.x > last_x && !intersections_set.contains(&inter) {
                                     intersections_set.insert(inter.clone());
                                     queue.insert(Event::Intersection {
                                         point: inter,
