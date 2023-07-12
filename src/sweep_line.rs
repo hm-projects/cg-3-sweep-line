@@ -78,13 +78,13 @@ impl SweepLine {
             above: None,
         };
 
-        if let Some(line_above) = self.elements.get(index + 1) {
-            neighbors.above = Some(line_above.clone());
+        if let Some(line_below) = self.elements.get(index + 1) {
+            neighbors.below = Some(line_below.clone());
         }
 
         if index > 0 {
-            if let Some(line_below) = self.elements.get(index - 1) {
-                neighbors.below = Some(line_below.clone());
+            if let Some(line_above) = self.elements.get(index - 1) {
+                neighbors.above = Some(line_above.clone());
             }
         }
 
@@ -126,6 +126,7 @@ impl SweepLine {
             above: None,
         };
 
+        // TODO: this ordering here is not correct
         if let Some(line_above) = self.elements.get(bigger + 1) {
             result.above = Some(line_above.clone());
         };

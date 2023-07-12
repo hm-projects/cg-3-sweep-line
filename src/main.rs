@@ -348,4 +348,22 @@ mod tests {
         assert_eq!(intersections[0].x, 1.4375);
         assert_eq!(intersections[0].y, 0.5);
     }
+
+    #[test]
+    fn test_dunno() {
+        let l1 = Line::from_str("0 0.5 3 0.5").unwrap();
+        let l2 = Line::from_str("0.5 1 2 0.2").unwrap();
+        let l3 = Line::from_str("1 0.8 1.8 0.8").unwrap();
+        let l4 = Line::from_str("1.1 0.6 1.4 1").unwrap();
+
+        let queue = initialize(vec![l1, l2, l3, l4]);
+        let intersections = sweep_line_intersections(queue);
+
+
+        println!("{:#?}", intersections);
+        assert_eq!(intersections.len(), 3);
+
+        assert_eq!(intersections[0].x, 1.4375);
+        assert_eq!(intersections[0].y, 0.5);
+    }
 }
