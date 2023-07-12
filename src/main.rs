@@ -1,177 +1,12 @@
+mod geometry;
+mod sweep_line;
+
 use std::cmp::{max, min};
 use std::collections::BTreeSet;
-use std::fmt::{self, Display};
 use std::fs;
-use std::{num::ParseFloatError, str::FromStr};
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
-struct Point {
-    x: f64,
-    y: f64,
-}
-
-impl Display for Point {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{} {}", self.x, self.y)
-    }
-}
-
-fn ccw(p: &Point, q: &Point, r: &Point) -> f64 {
-    (p.x * q.y - p.y * q.x) + (q.x * r.y - q.y * r.x) + (p.y * r.x - p.x * r.y)
-}
-
-impl Eq for Point {}
-
-impl Ord for Point {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        let x = f64::total_cmp(&self.x, &other.x);
-        match x {
-            std::cmp::Ordering::Equal => f64::total_cmp(&self.y, &other.y),
-            _ => x,
-        }
-    }
-}
-
-impl Point {
-    fn from_str(x: &str, y: &str) -> Result<Point, ParseFloatError> {
-        let p = Point {
-            x: x.parse()?,
-            y: y.parse()?,
-        };
-
-        Ok(p)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
-struct Line {
-    p: Point,
-    q: Point,
-}
-
-impl Eq for Line {}
-
-#[derive(Debug)]
-enum ParseLineError {
-    ParseFloat(ParseFloatError),
-    NotFourElements,
-}
-
-impl FromStr for Line {
-    type Err = ParseLineError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let splits: Vec<_> = s.split(' ').collect();
-
-        if splits.len() != 4 {
-            return Err(ParseLineError::NotFourElements);
-        }
-
-        let p = Point::from_str(splits[0], splits[1]).map_err(ParseLineError::ParseFloat)?;
-        let q = Point::from_str(splits[2], splits[3]).map_err(ParseLineError::ParseFloat)?;
-
-        let line = Line { p, q };
-
-        Ok(line)
-    }
-}
-
-fn overlap_for_colinear(p1: &Point, p2: &Point, q1: &Point, q2: &Point) -> bool {
-    // x
-    let p_smallest_x = p1.x.min(p2.x);
-    let p_largest_x = p1.x.max(p2.x);
-    let q_smallest_x = q1.x.min(q2.x);
-    let q_largest_x = q1.x.max(q2.x);
-
-    let qx_not_in_px = q_smallest_x > p_largest_x || q_largest_x < p_smallest_x;
-
-    if qx_not_in_px {
-        // early return
-        return false;
-    }
-
-    // y
-    let p_smallest_y = p1.y.min(p2.y);
-    let p_largest_y = p1.y.max(p2.y);
-    let q_smallest_y = q1.y.min(q2.y);
-    let q_largest_y = q1.y.max(q2.y);
-
-    let qy_not_in_py = q_smallest_y > p_largest_y || q_largest_y < p_smallest_y;
-
-    !qy_not_in_py
-}
-
-fn intersect(p1: &Point, p2: &Point, q1: &Point, q2: &Point) -> bool {
-    // let overlap = overlap_for_colinear(p1, p2, q1, q2);
-    // if !overlap {
-    //     return false;
-    // }
-
-    let ccwq1 = ccw(p1, p2, q1);
-    let ccwq2 = ccw(p1, p2, q2);
-    if ccwq1 * ccwq2 > 0.0 {
-        return false;
-    }
-
-    let ccwp1 = ccw(q1, q2, p1);
-    let ccwp2 = ccw(q1, q2, p2);
-    if ccwp1 * ccwp2 > 0.0 {
-        return false;
-    }
-
-    if ccwq1 == 0.0 && ccwq2 == 0.0 && ccwp1 == 0.0 && ccwp2 == 0.0 {
-        // lines are colinear --> check for overlap
-        return overlap_for_colinear(p1, p2, q1, q2);
-    }
-
-    true
-}
-
-impl Line {
-    fn len(&self) -> f64 {
-        let dx = self.p.x - self.q.x;
-        let dy = self.p.y - self.q.y;
-        f64::sqrt(dx * dx + dy * dy)
-    }
-
-    fn intersection(&self, other: &Line) -> Option<Point> {
-        let p1 = &self.p;
-        let p2 = &self.q;
-        let q1 = &other.p;
-        let q2 = &other.q;
-
-        let ccwq1 = ccw(p1, p2, q1);
-        let ccwq2 = ccw(p1, p2, q2);
-        if ccwq1 * ccwq2 > 0.0 {
-            return None;
-        }
-
-        let ccwp1 = ccw(q1, q2, p1);
-        let ccwp2 = ccw(q1, q2, p2);
-        if ccwp1 * ccwp2 > 0.0 {
-            return None;
-        }
-
-        if ccwq1 == 0.0 && ccwq2 == 0.0 && ccwp1 == 0.0 && ccwp2 == 0.0 {
-            panic!("Two colinear lines were detected: {:?}, {:?}", self, other);
-            // lines are colinear --> check for overlap
-            // let overlap = overlap_for_colinear(p1, p2, q1, q2);
-            // if overlap {
-            //     return Some(Point { x: 0., y: 0. });
-            // } else {
-            //     return None;
-            // }
-        }
-
-        // Determine intersection point
-        let r_ab = (ccwq2 / ccwq1).abs();
-        let a = r_ab / (r_ab + 1.0);
-        let i_x = q2.x + a * (q1.x - q2.x);
-        let i_y = q2.y + a * (q1.y - q2.y);
-
-        Some(Point { x: i_x, y: i_y })
-    }
-}
+use geometry::{Line, Point};
+use sweep_line::SweepLineElement;
 
 #[derive(Debug)]
 enum Event {
@@ -275,33 +110,6 @@ fn initialize(lines: Vec<Line>) -> BTreeSet<Event> {
     }
 
     queue
-}
-
-#[derive(Debug, Clone)]
-struct SweepLineElement {
-    y: f64,
-    line: Line,
-}
-
-impl PartialEq for SweepLineElement {
-    fn eq(&self, other: &Self) -> bool {
-        self.y == other.y
-    }
-}
-impl Eq for SweepLineElement {}
-
-impl PartialOrd for SweepLineElement {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        // Reverse order
-        other.y.partial_cmp(&self.y)
-    }
-}
-
-impl Ord for SweepLineElement {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        // Reverse order
-        f64::total_cmp(&other.y, &self.y)
-    }
 }
 
 fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
@@ -480,6 +288,8 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+
     use super::*;
 
     #[test]
