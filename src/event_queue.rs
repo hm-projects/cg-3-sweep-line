@@ -125,13 +125,13 @@ impl EventQueue {
         line: &Line,
         other_line: &Line,
     ) {
-        if intersection_point.x >= self.last_x
+        let intersection_point = intersection_point.round(9);
+        if intersection_point.x > self.last_x
             && !self.intersection_points.contains(&intersection_point)
         {
-            let inter = intersection_point.round(9);
-            self.intersection_points.insert(inter.clone());
+            self.intersection_points.insert(intersection_point.clone());
             self.queue.insert(Event::Intersection {
-                point: inter,
+                point: intersection_point,
                 line: line.clone(),
                 other_line: other_line.clone(),
             });
