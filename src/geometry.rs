@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Point {
     pub x: f64,
     pub y: f64,
@@ -43,6 +43,12 @@ impl Ord for Point {
             std::cmp::Ordering::Equal => f64::total_cmp(&self.y, &other.y),
             _ => x,
         }
+    }
+}
+
+impl PartialOrd for Point {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
     }
 }
 
