@@ -115,13 +115,11 @@ impl SweepLine {
             )
         }
 
-        if index_line < index_other_line {
-            self.elements[index_line].y = intersection_point.y;
-            self.elements[index_other_line].y = intersection_point.y + 0.000000001;
-        } else {
-            self.elements[index_line].y = intersection_point.y + 0.000000001;
-            self.elements[index_other_line].y = intersection_point.y;
-        };
+        // sample the points a bit to the right of the sweep line
+        let delta = 1e-9;
+        self.elements[index_line].y = line1.y(intersection_point.x + delta);
+        self.elements[index_other_line].y = line2.y(intersection_point.x + delta);
+        
         self.elements.sort();
 
         let smaller = index_line.min(index_other_line);

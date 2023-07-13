@@ -38,6 +38,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                 if let Some(line_above) = neighbors.above {
                     if let Some(inter) = line.intersection(&line_above.line) {
                         if inter.x >= last_x && !intersections_set.contains(&inter) {
+                            let inter = inter.round(9);
                             intersections_set.insert(inter.clone());
                             queue.insert(Event::Intersection {
                                 point: inter,
@@ -51,6 +52,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                 if let Some(line_below) = neighbors.below {
                     if let Some(inter) = line.intersection(&line_below.line) {
                         if inter.x >= last_x && !intersections_set.contains(&inter) {
+                            let inter = inter.round(9);
                             intersections_set.insert(inter.clone());
                             queue.insert(Event::Intersection {
                                 point: inter,
@@ -71,6 +73,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                 if let (Some(line_below), Some(line_above)) = (neighbors.below, neighbors.above) {
                     if let Some(inter) = line_below.line.intersection(&line_above.line) {
                         if inter.x >= last_x && !intersections_set.contains(&inter) {
+                            let inter = inter.round(9);
                             intersections_set.insert(inter.clone());
                             queue.insert(Event::Intersection {
                                 point: inter,
@@ -97,6 +100,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                 if let (line, Some(line_above)) = (swapped.bigger, swapped.above) {
                     if let Some(inter) = line.line.intersection(&line_above.line) {
                         if inter.x >= last_x && !intersections_set.contains(&inter) {
+                            let inter = inter.round(9);
                             intersections_set.insert(inter.clone());
                             queue.insert(Event::Intersection {
                                 point: inter,
@@ -110,6 +114,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                 if let (line, Some(line_below)) = (swapped.smaller, swapped.below) {
                     if let Some(inter) = line.line.intersection(&line_below.line) {
                         if inter.x >= last_x && !intersections_set.contains(&inter) {
+                            let inter = inter.round(9);
                             intersections_set.insert(inter.clone());
                             queue.insert(Event::Intersection {
                                 point: inter,
@@ -360,11 +365,16 @@ mod tests {
         let queue = initialize(vec![l1, l2, l3, l4]);
         let intersections = sweep_line_intersections(queue);
 
-
         println!("{:#?}", intersections);
         assert_eq!(intersections.len(), 3);
 
-        assert_eq!(intersections[0].x, 1.4375);
-        assert_eq!(intersections[0].y, 0.5);
+        assert_eq!(intersections[0].x, 1.142857142857143);
+        assert_eq!(intersections[0].y, 0.657142857142857);
+
+        assert_eq!(intersections[1].x, 1.2499999999999998);
+        assert_eq!(intersections[1].y, 0.8);
+
+        assert_eq!(intersections[2].x, 1.4375);
+        assert_eq!(intersections[2].y, 0.5);
     }
 }
