@@ -138,7 +138,6 @@ impl Line {
         // calculate the lines y value at a certain x value
         let m = (self.p.y - self.q.y) / (self.p.x - self.q.x);
 
-        
         m * (x - self.p.x) + self.p.y
     }
 }
