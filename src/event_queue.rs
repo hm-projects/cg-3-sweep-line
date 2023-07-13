@@ -61,38 +61,80 @@ impl Ord for Event {
     }
 }
 
-pub fn initialize(lines: Vec<Line>) -> BTreeSet<Event> {
-    let mut queue = BTreeSet::new();
+pub struct EventQueue {
+    last_x: f64,
+    queue: BTreeSet<Event>,
+    pub intersection_points: BTreeSet<Point>,
+}
 
-    for line in lines {
-        if line.p.x == line.q.x {
-            panic!("Vertical line detected: {:?}", line)
-        }
-
-        if line.len() < 0.0 {
-            panic!("Line segment with 0 length detected: {:?}", line)
-        }
-
-        let smaller = min(&line.p, &line.q);
-        let larger = max(&line.p, &line.q);
-
-        let start = Event::Begin {
-            point: smaller.to_owned(),
-            line: line.clone(),
+impl EventQueue {
+    pub fn new(lines: Vec<Line>) -> Self {
+        let mut events: EventQueue = Self {
+            last_x: 0.0,
+            queue: BTreeSet::new(),
+            intersection_points: BTreeSet::new(),
         };
-        if queue.contains(&start) {
-            panic!("Duplicate point detected: {:?}", start)
-        }
-        queue.insert(start);
 
-        let end = Event::End {
-            point: larger.to_owned(),
-            line,
-        };
-        if queue.contains(&end) {
-            panic!("Duplicate point detected: {:?}", end)
+        for line in lines {
+            if line.p.x == line.q.x {
+                panic!("Vertical line detected: {:?}", line)
+            }
+
+            if line.len() < 0.0 {
+                panic!("Line segment with 0 length detected: {:?}", line)
+            }
+
+            let smaller = min(&line.p, &line.q);
+            let larger = max(&line.p, &line.q);
+
+            let start = Event::Begin {
+                point: smaller.to_owned(),
+                line: line.clone(),
+            };
+            if events.queue.contains(&start) {
+                panic!("Duplicate point detected: {:?}", start)
+            }
+            events.queue.insert(start);
+
+            let end = Event::End {
+                point: larger.to_owned(),
+                line,
+            };
+            if events.queue.contains(&end) {
+                panic!("Duplicate point detected: {:?}", end)
+            }
+            events.queue.insert(end);
         }
-        queue.insert(end);
+        events
     }
-    queue
+
+    pub fn pop_first(&mut self) -> Option<Event> {
+        let event = self.queue.pop_first();
+        if let Some(event) = &event {
+            if event.point().x < self.last_x {
+                panic!("Sweep line went backwards!");
+            }
+            self.last_x = event.point().x;
+        };
+        event
+    }
+
+    pub fn add_intersection_event(
+        &mut self,
+        intersection_point: Point,
+        line: &Line,
+        other_line: &Line,
+    ) {
+        if intersection_point.x >= self.last_x
+            && !self.intersection_points.contains(&intersection_point)
+        {
+            let inter = intersection_point.round(9);
+            self.intersection_points.insert(inter.clone());
+            self.queue.insert(Event::Intersection {
+                point: inter,
+                line: line.clone(),
+                other_line: other_line.clone(),
+            });
+        }
+    }
 }

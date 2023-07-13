@@ -2,31 +2,21 @@ mod event_queue;
 mod geometry;
 mod sweep_line;
 
+use std::io::Write;
 use std::time::Instant;
-use std::{collections::BTreeSet, io::Write};
 use std::{env, fs};
 
 use event_queue::Event;
 use geometry::{Line, Point};
 use sweep_line::SweepLine;
 
-use crate::event_queue::initialize;
+use crate::event_queue::EventQueue;
 
-fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
+fn sweep_line_intersections(mut queue: EventQueue) -> Vec<Point> {
     let mut sweep_line = SweepLine::new();
-    let mut intersections_set: BTreeSet<Point> = BTreeSet::new();
-
-    let mut last_x = 0.0;
 
     while let Some(event) = queue.pop_first() {
-        if event.point().x < last_x {
-            panic!("Sweep line went backwards!");
-        }
-        last_x = event.point().x;
         sweep_line.update(event.point().x);
-        //println!("{:?}", &event);
-        //println!("{:?}", &segments);
-        //println!("{:?}", &queue);
         match event {
             Event::Begin { point, line } => {
                 sweep_line.insert(point.y, line.clone());
@@ -38,29 +28,13 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
 
                 if let Some(line_above) = neighbors.above {
                     if let Some(inter) = line.intersection(&line_above.line) {
-                        if inter.x >= last_x && !intersections_set.contains(&inter) {
-                            let inter = inter.round(9);
-                            intersections_set.insert(inter.clone());
-                            queue.insert(Event::Intersection {
-                                point: inter,
-                                line: line.clone(),
-                                other_line: line_above.line.clone(),
-                            });
-                        }
+                        queue.add_intersection_event(inter, &line, &line_above.line);
                     };
                 };
 
                 if let Some(line_below) = neighbors.below {
                     if let Some(inter) = line.intersection(&line_below.line) {
-                        if inter.x >= last_x && !intersections_set.contains(&inter) {
-                            let inter = inter.round(9);
-                            intersections_set.insert(inter.clone());
-                            queue.insert(Event::Intersection {
-                                point: inter,
-                                line: line.clone(),
-                                other_line: line_below.line.clone(),
-                            });
-                        }
+                        queue.add_intersection_event(inter, &line, &line_below.line);
                     };
                 };
             }
@@ -73,15 +47,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
 
                 if let (Some(line_below), Some(line_above)) = (neighbors.below, neighbors.above) {
                     if let Some(inter) = line_below.line.intersection(&line_above.line) {
-                        if inter.x >= last_x && !intersections_set.contains(&inter) {
-                            let inter = inter.round(9);
-                            intersections_set.insert(inter.clone());
-                            queue.insert(Event::Intersection {
-                                point: inter,
-                                line: line_below.line.clone(),
-                                other_line: line_above.line.clone(),
-                            });
-                        }
+                        queue.add_intersection_event(inter, &line_below.line, &line_above.line);
                     };
                 };
 
@@ -97,38 +63,20 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
 
                 if let (line, Some(line_above)) = (swapped.bigger, swapped.above) {
                     if let Some(inter) = line.line.intersection(&line_above.line) {
-                        if inter.x >= last_x && !intersections_set.contains(&inter) {
-                            let inter = inter.round(9);
-                            intersections_set.insert(inter.clone());
-                            queue.insert(Event::Intersection {
-                                point: inter,
-                                line: line.line.clone(),
-                                other_line: line_above.line.clone(),
-                            });
-                        }
+                        queue.add_intersection_event(inter, &line.line, &line_above.line);
                     };
                 };
 
                 if let (line, Some(line_below)) = (swapped.smaller, swapped.below) {
                     if let Some(inter) = line.line.intersection(&line_below.line) {
-                        if inter.x >= last_x && !intersections_set.contains(&inter) {
-                            let inter = inter.round(9);
-                            intersections_set.insert(inter.clone());
-                            queue.insert(Event::Intersection {
-                                point: inter,
-                                line: line.line.clone(),
-                                other_line: line_below.line.clone(),
-                            });
-                        }
+                        queue.add_intersection_event(inter, &line.line, &line_below.line);
                     };
                 };
-
-                intersections_set.insert(intersection_point.clone());
             }
         }
     }
 
-    intersections_set.into_iter().collect()
+    queue.intersection_points.into_iter().collect()
 }
 
 fn read_file(file: &str) -> Vec<Line> {
@@ -148,7 +96,7 @@ fn main() {
         let lines = read_file(param);
 
         let start_init = Instant::now();
-        let queue = initialize(lines);
+        let queue = EventQueue::new(lines);
         let init = start_init.elapsed();
         let start_sweep = Instant::now();
         let intersections = sweep_line_intersections(queue);
@@ -214,15 +162,15 @@ mod tests {
             p: p.clone(),
             q: q.clone(),
         };
-        let mut queue = initialize(vec![line]);
-
-        assert_eq!(queue.len(), 2);
+        let mut queue = EventQueue::new(vec![line]);
 
         let first = queue.pop_first().unwrap();
         assert_eq!(first.point(), &q);
 
         let second = queue.pop_first().unwrap();
         assert_eq!(second.point(), &p);
+
+        assert_eq!(None, queue.pop_first());
     }
 
     #[test]
@@ -257,7 +205,7 @@ mod tests {
         let p2 = Point { x: 1.0, y: 0.0 };
         let q2 = Point { x: 4.0, y: 2.0 };
         let line2 = Line { p: p2, q: q2 };
-        let queue = initialize(vec![line, line2]);
+        let queue = EventQueue::new(vec![line, line2]);
         let intersections = sweep_line_intersections(queue);
 
         assert_eq!(intersections.len(), 1);
@@ -271,7 +219,7 @@ mod tests {
         let l2 = Line::from_str("1.5 2.5 4 0.5").unwrap();
         let l3 = Line::from_str("0.5 1.5 4 2.5").unwrap();
 
-        let queue = initialize(vec![l1, l2, l3]);
+        let queue = EventQueue::new(vec![l1, l2, l3]);
         let intersections = sweep_line_intersections(queue);
 
         assert_eq!(intersections.len(), 2);
@@ -288,7 +236,7 @@ mod tests {
         let l2 = Line::from_str("1 2.5 4 0.5").unwrap();
         let l3 = Line::from_str("1.5 1.5 4 2.5").unwrap();
 
-        let queue = initialize(vec![l1, l2, l3]);
+        let queue = EventQueue::new(vec![l1, l2, l3]);
         let intersections = sweep_line_intersections(queue);
 
         assert_eq!(intersections.len(), 2);
@@ -305,7 +253,7 @@ mod tests {
         let l2 = Line::from_str("1.5 2 2.5 1.5").unwrap();
         let l3 = Line::from_str("0.5 0.5 2.5 2").unwrap();
 
-        let queue = initialize(vec![l1, l2, l3]);
+        let queue = EventQueue::new(vec![l1, l2, l3]);
         let intersections = sweep_line_intersections(queue);
 
         assert_eq!(intersections.len(), 2);
@@ -323,7 +271,7 @@ mod tests {
         let l3 = Line::from_str("1.5 0.5 3 2").unwrap();
         let l4 = Line::from_str("2 2 3.5 0.5").unwrap();
 
-        let queue = initialize(vec![l1, l2, l3, l4]);
+        let queue = EventQueue::new(vec![l1, l2, l3, l4]);
         let intersections = sweep_line_intersections(queue);
 
         assert_eq!(intersections.len(), 5);
@@ -351,7 +299,7 @@ mod tests {
         let l2 = Line::from_str("0.5 1 2 0.2").unwrap();
         let l3 = Line::from_str("1 0.8 1.8 0.8").unwrap();
 
-        let queue = initialize(vec![l1, l2, l3]);
+        let queue = EventQueue::new(vec![l1, l2, l3]);
         let intersections = sweep_line_intersections(queue);
 
         assert_eq!(intersections.len(), 1);
@@ -367,7 +315,7 @@ mod tests {
         let l3 = Line::from_str("1 0.8 1.8 0.8").unwrap();
         let l4 = Line::from_str("1.1 0.6 1.4 1").unwrap();
 
-        let queue = initialize(vec![l1, l2, l3, l4]);
+        let queue = EventQueue::new(vec![l1, l2, l3, l4]);
         let intersections = sweep_line_intersections(queue);
 
         println!("{:#?}", intersections);
