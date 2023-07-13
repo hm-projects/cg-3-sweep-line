@@ -56,8 +56,8 @@ impl SweepLine {
         self.elements.sort();
     }
 
-    pub fn remove(&mut self, line: Line) {
-        let index = self.elements.iter().position(|x| x.line == line);
+    pub fn remove(&mut self, line: &Line) {
+        let index = self.elements.iter().position(|x| x.line == *line);
         let Some(index) = index else {
             // The line is not in the sweep line
             return;
@@ -74,8 +74,8 @@ impl SweepLine {
         self.elements.sort();
     }
 
-    pub fn get_neighbors(&self, line: Line) -> Option<Neighbors> {
-        let index = self.elements.iter().position(|x| x.line == line);
+    pub fn get_neighbors(&self, line: &Line) -> Option<Neighbors> {
+        let index = self.elements.iter().position(|x| x.line == *line);
         let Some(index) = index else {
             // The line is not in the sweep line
             return None;
@@ -101,12 +101,12 @@ impl SweepLine {
 
     pub fn swap_and_get_new_neighbors(
         &mut self,
-        line1: Line,
-        line2: Line,
+        line1: &Line,
+        line2: &Line,
         intersection_point: &Point,
     ) -> SwapResult {
-        let index_line = self.elements.iter().position(|x| x.line == line1).unwrap();
-        let index_other_line = self.elements.iter().position(|x| x.line == line2).unwrap();
+        let index_line = self.elements.iter().position(|x| x.line == *line1).unwrap();
+        let index_other_line = self.elements.iter().position(|x| x.line == *line2).unwrap();
 
         if index_line.abs_diff(index_other_line) != 1 {
             println!(
@@ -119,7 +119,7 @@ impl SweepLine {
         let delta = 1e-9;
         self.elements[index_line].y = line1.y(intersection_point.x + delta);
         self.elements[index_other_line].y = line2.y(intersection_point.x + delta);
-        
+
         self.elements.sort();
 
         let smaller = index_line.min(index_other_line);
@@ -132,7 +132,6 @@ impl SweepLine {
             above: None,
         };
 
-        // TODO: this ordering here is not correct
         if let Some(line_above) = self.elements.get(bigger + 1) {
             result.above = Some(line_above.clone());
         };

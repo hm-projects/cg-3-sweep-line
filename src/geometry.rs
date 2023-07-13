@@ -117,13 +117,6 @@ impl Line {
 
         if ccwq1 == 0.0 && ccwq2 == 0.0 && ccwp1 == 0.0 && ccwp2 == 0.0 {
             panic!("Two colinear lines were detected: {:?}, {:?}", self, other);
-            // lines are colinear --> check for overlap
-            // let overlap = overlap_for_colinear(p1, p2, q1, q2);
-            // if overlap {
-            //     return Some(Point { x: 0., y: 0. });
-            // } else {
-            //     return None;
-            // }
         }
 
         // Determine intersection point

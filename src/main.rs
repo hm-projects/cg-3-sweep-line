@@ -2,8 +2,9 @@ mod event_queue;
 mod geometry;
 mod sweep_line;
 
-use std::fs;
+use std::time::Instant;
 use std::{collections::BTreeSet, io::Write};
+use std::{env, fs};
 
 use event_queue::Event;
 use geometry::{Line, Point};
@@ -30,7 +31,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
             Event::Begin { point, line } => {
                 sweep_line.insert(point.y, line.clone());
 
-                let neighbors = sweep_line.get_neighbors(line.clone());
+                let neighbors = sweep_line.get_neighbors(&line);
                 let Some(neighbors) = neighbors else {
                     panic!("Line not found in sweep line, but was just inserted: {:?}", line);
                 };
@@ -64,7 +65,7 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                 };
             }
             Event::End { point: _, line } => {
-                let neighbors = sweep_line.get_neighbors(line.clone());
+                let neighbors = sweep_line.get_neighbors(&line);
 
                 let Some(neighbors) = neighbors else {
                     panic!("Line not found in sweep line, should be removed now: {:?}", line);
@@ -84,18 +85,15 @@ fn sweep_line_intersections(mut queue: BTreeSet<Event>) -> Vec<Point> {
                     };
                 };
 
-                sweep_line.remove(line.clone());
+                sweep_line.remove(&line);
             }
             Event::Intersection {
                 point: intersection_point,
                 line,
                 other_line,
             } => {
-                let swapped = sweep_line.swap_and_get_new_neighbors(
-                    line.clone(),
-                    other_line.clone(),
-                    &intersection_point,
-                );
+                let swapped =
+                    sweep_line.swap_and_get_new_neighbors(&line, &other_line, &intersection_point);
 
                 if let (line, Some(line_above)) = (swapped.bigger, swapped.above) {
                     if let Some(inter) = line.line.intersection(&line_above.line) {
@@ -143,14 +141,23 @@ fn read_file(file: &str) -> Vec<Line> {
 }
 
 fn main() {
-    //let params = env::args().collect::<Vec<_>>();
-    let params = vec!["", "./data/s_1000_10.dat"];
+    let params = env::args().collect::<Vec<_>>();
 
     for param in params.iter().skip(1) {
+        println!("Processing file {}", param);
         let lines = read_file(param);
 
+        let start_init = Instant::now();
         let queue = initialize(lines);
+        let init = start_init.elapsed();
+        let start_sweep = Instant::now();
         let intersections = sweep_line_intersections(queue);
+        let swept = start_sweep.elapsed();
+        let total = start_init.elapsed();
+
+        println!("Initializing events: {:.2?}", init);
+        println!("Sweeping line: {:.2?}", swept);
+        println!("Total elapsed: {:.2?}", total);
         println!("intersections: {}", intersections.len());
 
         // create a new file "i_<filename>" with the intersections
@@ -159,14 +166,12 @@ fn main() {
         if fs::metadata(&filename).is_ok() {
             fs::remove_file(&filename).expect("Failed to delete file");
         }
-        println!("Writing intersections to file {}", filename);
-        let mut file = fs::File::create(filename).expect("Failed to create file");
+        let mut file = fs::File::create(&filename).expect("Failed to create file");
         intersections
             .iter()
             .map(|p| format!("{}", p))
             .for_each(|p| writeln!(file, "{}", p).expect("Failed to write to file"));
-
-        //println!("{:#?}", queue);
+        println!("Wrote intersections to file {}", filename);
     }
 }
 
