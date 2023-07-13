@@ -8,6 +8,7 @@ use std::{env, fs};
 
 use event_queue::Event;
 use geometry::{Line, Point};
+use log::info;
 use sweep_line::SweepLine;
 
 use crate::event_queue::EventQueue;
@@ -89,10 +90,12 @@ fn read_file(file: &str) -> Vec<Line> {
 }
 
 fn main() {
+    env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
+
     let params = env::args().collect::<Vec<_>>();
 
     for param in params.iter().skip(1) {
-        println!("Processing file {}", param);
+        info!("Processing file {}", param);
         let lines = read_file(param);
 
         let start_init = Instant::now();
@@ -103,10 +106,10 @@ fn main() {
         let swept = start_sweep.elapsed();
         let total = start_init.elapsed();
 
-        println!("Initializing events: {:.2?}", init);
-        println!("Sweeping line: {:.2?}", swept);
-        println!("Total elapsed: {:.2?}", total);
-        println!("intersections: {}", intersections.len());
+        info!("Initializing events: {:.2?}", init);
+        info!("Sweeping line: {:.2?}", swept);
+        info!("Total elapsed: {:.2?}", total);
+        info!("intersections: {}", intersections.len());
 
         // create a new file "i_<filename>" with the intersections
         let filename = format!("{}.i", param);
@@ -119,7 +122,7 @@ fn main() {
             .iter()
             .map(|p| format!("{}", p))
             .for_each(|p| writeln!(file, "{}", p).expect("Failed to write to file"));
-        println!("Wrote intersections to file {}", filename);
+        info!("Wrote intersections to file {}", filename);
     }
 }
 
@@ -318,7 +321,6 @@ mod tests {
         let queue = EventQueue::new(vec![l1, l2, l3, l4]);
         let intersections = sweep_line_intersections(queue);
 
-        println!("{:#?}", intersections);
         assert_eq!(intersections.len(), 3);
 
         assert_eq!(intersections[0].x, 1.142857142857143);

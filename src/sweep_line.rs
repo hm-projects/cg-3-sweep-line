@@ -109,7 +109,7 @@ impl SweepLine {
         let index_other_line = self.elements.iter().position(|x| x.line == *line2).unwrap();
 
         if index_line.abs_diff(index_other_line) != 1 {
-            println!(
+            panic!(
                 "Two lines with indices too far apart: {}, {}. \nSegments are: {:?}",
                 index_line, index_other_line, self.elements
             )
