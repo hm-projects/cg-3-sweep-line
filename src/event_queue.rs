@@ -42,18 +42,7 @@ impl Eq for Event {}
 
 impl PartialOrd for Event {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        // compare events first by their point, if point is equal then prefer Intersection over End
-        let point_cmp = self.point().partial_cmp(other.point());
-        match point_cmp {
-            Some(std::cmp::Ordering::Equal) => match (self, other) {
-                (Event::Intersection { .. }, Event::End { .. }) => Some(std::cmp::Ordering::Less),
-                (Event::End { .. }, Event::Intersection { .. }) => {
-                    Some(std::cmp::Ordering::Greater)
-                }
-                _ => Some(std::cmp::Ordering::Equal),
-            },
-            _ => point_cmp,
-        }
+        Some(self.cmp(other))
     }
 }
 
