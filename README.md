@@ -242,9 +242,9 @@ For the largest dataset, the spread is increased, to still have a low amount of 
 
 | Data set | Description | Brute Force | Sweep Line | Intersections |
 | -------- | ----------- | ---------- | ------------- | ------------- |
-| s_1000_10.dat | Sample dataset | ~1.5ms | ~1.75ms | 796 |
-| [gen_1000_10.dat](docs/imgs/gen_1000_10.dat.svg) | 1000 segments, [0, 1000] | ~1ms | ~600µs | 6 |
-| [gen_10000_10.dat](docs/imgs/gen_10000_10.dat.svg)| 10000 segments, [0, 1000] | ~110ms | ~11ms | 799 |
-| [gen_100000_10.dat](docs/imgs/gen_100000_10.dat.svg)| 100000 segments, [0, 10000] | ~10s| ~110ms | 806 |
+| [s_1000_10.dat](doc/imgs/s_1000_10.dat.svg) | Sample dataset | ~1.5ms | ~1.75ms | 796 |
+| [gen_1000_10.dat](doc/imgs/gen_1000_10.dat.svg) | 1000 segments, [0, 1000] | ~1ms | ~600µs | 6 |
+| [gen_10000_10.dat](doc/imgs/gen_10000_10.dat.svg)| 10000 segments, [0, 1000] | ~110ms | ~11ms | 799 |
+| [gen_100000_10.dat](doc/imgs/gen_100000_10.dat.svg)| 100000 segments, [0, 10000] | ~10s| ~110ms | 806 |
 
 As can be seen, the sweep line algorithm beats the brute force implementation immensely if the number of intersections is low.
