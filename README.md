@@ -223,3 +223,28 @@ pub fn intersection(&self, other: &Line) -> Option<Point> {
 Please take a look at the following GeoGebra sketch for an interactive "proof": <https://www.geogebra.org/calculator/zckac62j>
 
 The ratio between two CCW values is used to determine the intersection point.
+
+## Benchmarking and comparing to brute force
+
+Passing the `s_1000_10.dat` data set to the code of [Assignment 1](https://github.com/hm-projects/cg-1-lines), we get `796` intersections.
+This implementation achieves the same result.
+
+Comparing the runtimes of both implementations, we get the following results:
+
+| Implementation | Runtime | Intersections |
+| -------------- | ------- | ------------- |
+| Brute Force    | 1.5ms   | 796           |
+| Sweep Line     | 1.75ms  | 796           |
+
+We generated some datasets with more line segments, and compared the runtimes of both implementations.
+The datasets contain `n` line segments, with a length ranging from `]0, 10]` units, and are spread in the given ranges.
+For the largest dataset, the spread is increased, to still have a low amount of intersections.
+
+| Data set | Description | Brute Force | Sweep Line | Intersections |
+| -------- | ----------- | ---------- | ------------- | ------------- |
+| s_1000_10.dat | Sample dataset | ~1.5ms | ~1.75ms | 796 |
+| [gen_1000_10.dat](docs/imgs/gen_1000_10.dat.svg) | 1000 segments, [0, 1000] | ~1ms | ~600µs | 6 |
+| [gen_10000_10.dat](docs/imgs/gen_10000_10.dat.svg)| 10000 segments, [0, 1000] | ~110ms | ~11ms | 799 |
+| [gen_100000_10.dat](docs/imgs/gen_100000_10.dat.svg)| 100000 segments, [0, 10000] | ~10s| ~110ms | 806 |
+
+As can be seen, the sweep line algorithm beats the brute force implementation immensely if the number of intersections is low.
