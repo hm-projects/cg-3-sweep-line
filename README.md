@@ -229,14 +229,16 @@ The ratio between two CCW values is used to determine the intersection point.
 Passing the `s_1000_10.dat` data set to the code of [Assignment 1](https://github.com/hm-projects/cg-1-lines), we get `796` intersections.
 This implementation achieves the same result.
 
-Comparing the runtimes of both implementations, we get the following results:
+The datasets provided in assignment 1 do not meet the requirements of this algorithm, and thus cannot be compared. We try to give comparisons by generating our own datasets.
+
+Comparing the runtime of both implementations, we get the following results:
 
 | Implementation | Runtime | Intersections |
 | -------------- | ------- | ------------- |
 | Brute Force    | 1.5ms   | 796           |
 | Sweep Line     | 1.75ms  | 796           |
 
-We generated some datasets with more line segments, and compared the runtimes of both implementations.
+We generated some datasets with more line segments, and compared the runtime of both implementations.
 The datasets contain `n` line segments, with a length ranging from `]0, 10]` units, and are spread in the given ranges.
 For the largest dataset, the spread is increased, to still have a low amount of intersections.
 
