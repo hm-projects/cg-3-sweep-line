@@ -152,8 +152,8 @@ impl EventQueue {
 
                     let neighbors = sweep_line.get_neighbors(&line);
                     let Some(neighbors) = neighbors else {
-                    panic!("Line not found in sweep line, but was just inserted: {:?}", line);
-                };
+                        panic!("Line not found in sweep line, but was just inserted: {:?}", line);
+                    };
 
                     if let Some(line_above) = neighbors.above {
                         if let Some(inter) = line.intersection(&line_above.line) {
@@ -171,8 +171,8 @@ impl EventQueue {
                     let neighbors = sweep_line.get_neighbors(&line);
 
                     let Some(neighbors) = neighbors else {
-                    panic!("Line not found in sweep line, should be removed now: {:?}", line);
-                };
+                        panic!("Line not found in sweep line, should be removed now: {:?}", line);
+                    };
 
                     if let (Some(line_below), Some(line_above)) = (neighbors.below, neighbors.above)
                     {
