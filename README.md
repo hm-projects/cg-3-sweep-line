@@ -82,6 +82,8 @@ let intersections: BTreeSet<Point> = queue.sweep();
   - The events are ordered by their points
 - `SweepLine` is `Vec` of `LineSegments` with `y` value
   - The vector is sorted by the `y` value of the line segments
+  - This structure is often sorted, however the `sort` algorithm from the rust standard library is, according to the documentation, very efficient if the vector is already mostly sorted, which is the case here, see the documentation:
+    > The current algorithm is an adaptive, iterative merge sort inspired by timsort. It is designed to be very fast in cases where the slice is nearly sorted, or consists of two or more sorted sequences concatenated one after another.
 
 ### Sweeping Pseudo code
 
@@ -89,6 +91,7 @@ The following pseudo code is used to implement the sweep line algorithm.
 Keep in mind, this is only pseudo code, and the actual implementation might differ.
 
 ```rust
+// in event_queue.rs
 fn sweep(mut self) -> BTreeSet<Point> {
     let mut sweep_line = SweepLine::new();
 
@@ -144,3 +147,79 @@ fn sweep(mut self) -> BTreeSet<Point> {
     return self.intersection_points;
 }
 ```
+
+### Updating the sweep line
+
+The sweep line is updated by iterating over all line segments, and updating their `y` value at the current `x` coordinate of the sweep line.
+This must be done because the following example would not be detected as an intersection, if the sweep line is not updated:
+
+![Error case with no updating](doc/imgs/error_case.png)
+
+```rust
+// in sweep_line.rs
+pub fn update(&mut self, x: f64) {
+    // for every line, update the y value to be .y(x)
+    for element in self.elements.iter_mut() {
+        element.y = element.line.y(x);
+    }
+    self.elements.sort();
+}
+```
+
+### Swapping
+
+The swapping of two line segments in the sweep line is implemented as follows, again pseudo code:
+
+```rust
+// in sweep_line.rs
+// sample the points a bit to the right of the sweep line
+let delta = 1e-9;
+self.elements[index_line].y = line1.y(intersection_point.x + delta);
+self.elements[index_other_line].y = line2.y(intersection_point.x + delta);
+
+self.elements.sort();
+```
+
+The lines are sampled "a bit to the right" of the sweep lines, and get their `y` value updated, which ensures correct ordering after the following sort.
+
+### Finding intersection points
+
+We use the following algorithm to find intersection points between two line segments:
+
+```rust
+// in geometry.rs, Line::intersection
+pub fn intersection(&self, other: &Line) -> Option<Point> {
+    let p1 = &self.p;
+    let p2 = &self.q;
+    let q1 = &other.p;
+    let q2 = &other.q;
+
+    let ccwq1 = ccw(p1, p2, q1);
+    let ccwq2 = ccw(p1, p2, q2);
+    if ccwq1 * ccwq2 > 0.0 {
+        return None;
+    }
+
+    let ccwp1 = ccw(q1, q2, p1);
+    let ccwp2 = ccw(q1, q2, p2);
+    if ccwp1 * ccwp2 > 0.0 {
+        return None;
+    }
+
+    if ccwq1 == 0.0 && ccwq2 == 0.0 && ccwp1 == 0.0 && ccwp2 == 0.0 {
+        panic!("Two colinear lines were detected: {:?}, {:?}", self, other);
+    }
+
+    // Determine intersection point
+    let r_ab = (ccwq2 / ccwq1).abs();
+    let a = r_ab / (r_ab + 1.0);
+    let i_x = q2.x + a * (q1.x - q2.x);
+    let i_y = q2.y + a * (q1.y - q2.y);
+
+    Some(Point { x: i_x, y: i_y })
+}
+```
+
+Please take a look at the following GeoGebra sketch for an interactive "proof": <https://www.geogebra.org/calculator/zckac62j>
+
+The ratio between two CCW values is used to determine the intersection point.
