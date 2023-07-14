@@ -79,7 +79,9 @@ let intersections: BTreeSet<Point> = queue.sweep();
 ### Data structures
 
 - `EventQueue` is a `BTreeSet` of `Events` with point and associated line segments
+  - The events are ordered by their points
 - `SweepLine` is `Vec` of `LineSegments` with `y` value
+  - The vector is sorted by the `y` value of the line segments
 
 ### Sweeping Pseudo code
 
