@@ -3,7 +3,10 @@ use std::{
     collections::BTreeSet,
 };
 
-use crate::geometry::{Line, Point};
+use crate::{
+    geometry::{Line, Point},
+    sweep_line::SweepLine,
+};
 
 #[derive(Debug)]
 pub enum Event {
@@ -136,5 +139,76 @@ impl EventQueue {
                 other_line: other_line.clone(),
             });
         }
+    }
+
+    pub fn sweep(mut self) -> BTreeSet<Point> {
+        let mut sweep_line = SweepLine::new();
+
+        while let Some(event) = self.pop_first() {
+            sweep_line.update(event.point().x);
+            match event {
+                Event::Begin { point, line } => {
+                    sweep_line.insert(point.y, line.clone());
+
+                    let neighbors = sweep_line.get_neighbors(&line);
+                    let Some(neighbors) = neighbors else {
+                    panic!("Line not found in sweep line, but was just inserted: {:?}", line);
+                };
+
+                    if let Some(line_above) = neighbors.above {
+                        if let Some(inter) = line.intersection(&line_above.line) {
+                            self.add_intersection_event(inter, &line, &line_above.line);
+                        };
+                    };
+
+                    if let Some(line_below) = neighbors.below {
+                        if let Some(inter) = line.intersection(&line_below.line) {
+                            self.add_intersection_event(inter, &line, &line_below.line);
+                        };
+                    };
+                }
+                Event::End { point: _, line } => {
+                    let neighbors = sweep_line.get_neighbors(&line);
+
+                    let Some(neighbors) = neighbors else {
+                    panic!("Line not found in sweep line, should be removed now: {:?}", line);
+                };
+
+                    if let (Some(line_below), Some(line_above)) = (neighbors.below, neighbors.above)
+                    {
+                        if let Some(inter) = line_below.line.intersection(&line_above.line) {
+                            self.add_intersection_event(inter, &line_below.line, &line_above.line);
+                        };
+                    };
+
+                    sweep_line.remove(&line);
+                }
+                Event::Intersection {
+                    point: intersection_point,
+                    line,
+                    other_line,
+                } => {
+                    let swapped = sweep_line.swap_and_get_new_neighbors(
+                        &line,
+                        &other_line,
+                        &intersection_point,
+                    );
+
+                    if let (line, Some(line_above)) = (swapped.bigger, swapped.above) {
+                        if let Some(inter) = line.line.intersection(&line_above.line) {
+                            self.add_intersection_event(inter, &line.line, &line_above.line);
+                        };
+                    };
+
+                    if let (line, Some(line_below)) = (swapped.smaller, swapped.below) {
+                        if let Some(inter) = line.line.intersection(&line_below.line) {
+                            self.add_intersection_event(inter, &line.line, &line_below.line);
+                        };
+                    };
+                }
+            };
+        }
+
+        return self.intersection_points;
     }
 }
