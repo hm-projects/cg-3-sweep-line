@@ -45,13 +45,14 @@ Figure 1: Segments and intersections for sample dataset, image is in SVG format,
 
 We want to highlight some sections of the output, which might be of interest.
 Please see the axis labels in the figures to find the location in Figure 1.
+Click to expand the sections, if viewed in a browser.
 
 <details>
 <summary markdown="span">Looks like a missed intersection, but misses really close</summary>
-![](doc/imgs/close_miss.svg)
+<img src="doc/imgs/close_miss.svg">
 </details>
 
 <details>
 <summary markdown="span">Seems like a multi intersection point</summary>
-![](doc/imgs/multi_intersect.svg)
+<img src="doc/imgs/multi_intersect.svg">
 </details>
