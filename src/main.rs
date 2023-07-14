@@ -264,4 +264,15 @@ mod tests {
         assert_eq!(intersections[2].x, 1.4375);
         assert_eq!(intersections[2].y, 0.5);
     }
+
+    #[test]
+    fn test_same_result_as_simple() {
+        let file = "data/s_1000_10.dat";
+        let lines = read_file(file);
+
+        let queue = EventQueue::new(lines);
+        let intersections = queue.sweep();
+
+        assert_eq!(intersections.len(), 796);
+    }
 }
