@@ -226,8 +226,8 @@ mod tests {
         let intersections = sweep_line_intersections(queue);
 
         assert_eq!(intersections.len(), 2);
-        assert_eq!(intersections[0].x, 2.1578947368421053);
-        assert_eq!(intersections[0].y, 1.973684210526316);
+        assert_eq!(intersections[0].x, 2.157894737);
+        assert_eq!(intersections[0].y, 1.973684211);
 
         assert_eq!(intersections[1].x, 3.375);
         assert_eq!(intersections[1].y, 1.0);
@@ -260,7 +260,7 @@ mod tests {
         let intersections = sweep_line_intersections(queue);
 
         assert_eq!(intersections.len(), 2);
-        assert_eq!(intersections[0].x, 1.166666666666667);
+        assert_eq!(intersections[0].x, 1.166666667);
         assert_eq!(intersections[0].y, 1.0);
 
         assert_eq!(intersections[1].x, 2.1);
@@ -279,7 +279,7 @@ mod tests {
 
         assert_eq!(intersections.len(), 5);
 
-        assert_eq!(intersections[0].x, 1.4999999999999996); // floating point shenanigans
+        assert_eq!(intersections[0].x, 1.5); // floating point shenanigans
         assert_eq!(intersections[0].y, 1.0);
 
         assert_eq!(intersections[1].x, 1.75);
@@ -297,7 +297,6 @@ mod tests {
 
     #[test]
     fn test_three_lines_close_and_reorder() {
-        // TODO: this test provokes a "Two lines with indices too far apart: 0, 2." warning
         let l1 = Line::from_str("0 0.5 3 0.5").unwrap();
         let l2 = Line::from_str("0.5 1 2 0.2").unwrap();
         let l3 = Line::from_str("1 0.8 1.8 0.8").unwrap();
@@ -323,10 +322,10 @@ mod tests {
 
         assert_eq!(intersections.len(), 3);
 
-        assert_eq!(intersections[0].x, 1.142857142857143);
-        assert_eq!(intersections[0].y, 0.657142857142857);
+        assert_eq!(intersections[0].x, 1.142857143);
+        assert_eq!(intersections[0].y, 0.657142857);
 
-        assert_eq!(intersections[1].x, 1.2499999999999998);
+        assert_eq!(intersections[1].x, 1.25);
         assert_eq!(intersections[1].y, 0.8);
 
         assert_eq!(intersections[2].x, 1.4375);
